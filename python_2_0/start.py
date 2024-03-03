@@ -1,20 +1,22 @@
 import sys
 import os
 from SolverConnection.solver import Solver
+from interface import TextInterface
+from program import Program
+
 
 def main():
-    # check if there are enough command line arguments provided
-    if len(sys.argv) <3:
-        print("Needs 2 arguments (solver path and path to the .cfr file).")
-        return
-    
+    interface = TextInterface()
     # starts the solver process using the provided .exe path
-    connection = Solver(solver=sys.argv[1])
+    connection = Solver()
     # report success
-    print("Solver connected successfully")
-
+    interface.output("Solver connected successfully")
     # now let's use created solver connection to call some commands
+    program = Program(connection, interface)
+    program.start()
+    
 
+def example(connection):
     # call and print the result of "show metadata" on the provided .cfr file
     metadata = connection.command(line =f"show_metadata {sys.argv[2]}")
     print_lines(metadata)
@@ -46,6 +48,7 @@ def main():
     connection.exit()
     print("Connection closed.")
     print('Done.')
+
 
 
 def print_lines(lines):
