@@ -74,5 +74,5 @@ class Solver(object):
     def read_line(self):
         line = self.process.stdout.readline()
         if not line:
-            raise Exception(f"Unexpected end of output.")
+            raise Exception("Unexpected end of output.")
         return line
