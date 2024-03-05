@@ -9,27 +9,31 @@ class InputType (Enum):
     number = 2
     text = 3
     
-    
 # an input needed by the user, with accompanying prompt
 class Input ():
-    def __init__(self, prompt : str, type :InputType):
+    def __init__(self, type : InputType, prompt : str):
         self.prompt = prompt
         self.type = type
+    
+    def isValid (self, input: str) -> bool:
+        return True
 
 # a file input with specific extension or extensions needed from the user
 class FileInput (Input):
-    def __init__(self,  prompt : str, extension : Extension):
-        super().__init__(prompt, InputType.file)
-        self.extension = extension
+    def __init__(self, extension : Extension, prompt : str):
+        super().__init__(InputType.file, prompt)
+        self.extension : Extension = extension
     
     #checks if extension of input is one of allowed extensions
-    def isValid (self, input : str):
-        for e in self.extension:
-            if (input.name[-1*len(e.value):]) == e.value:
-                return True and super
+    #checks list of extensions in case add ability for input to be of multiple file types in future
+    def isValid (self, input : str) -> bool :
+        validExtensions : list[Extension] = [self.extension]
+        for e in validExtensions:
+            if (input[-1*len(e.value):]) == e.value:
+                return True
         return False
     
 # a specifically formatted .csv file with specific formatting needed from the user.
 class ParamsFileInput (FileInput):
     def __init__(self, prompt: str):
-        super().__init__(prompt, Extension.csv)
+        super().__init__(Extension.csv, prompt)

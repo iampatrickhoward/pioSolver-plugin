@@ -1,51 +1,53 @@
-from comm import CommandList, Command
+from comm import PluginCommands, Command
+from interface import Interface
+from SolverConnection.solver import Solver
+from typing import Callable
 
 class Program:
     
-    def __init__(self, connection, interface):
+    def __init__(self, connection : Solver, interface : Interface):
         self.connection = connection
         self.interface = interface
         #maintain a mapping of the commands to the functions that run them
-        self.commandDispatcher = {CommandList.RUN: self.run,
-                                  CommandList.CHECKFILE: self.checkfile,
-                                  CommandList.NODELOCK: self.nodelock,
-                                  CommandList.COMPARE: self.compare, 
-                                  CommandList.END: self.end,
-                                  CommandList.HELP: self.help}
+        self.commandDispatcher : dict[Command, Callable[[list[str]], None]] = { 
+            PluginCommands.RUN: self.run,
+            PluginCommands.CHECKFILE: self.checkfile,
+            PluginCommands.NODELOCK: self.nodelock,
+            PluginCommands.COMPARE: self.compare, 
+            PluginCommands.END: self.end,
+            PluginCommands.HELP: self.help}
         
-    def start(self):
-        self.interface.output("Welcome to Piosolver!")
-        self.interface.displayOptions()
+    def start(self) -> None :
         self.takeInput()    
         
         
-    def runCommand(self, command : Command, args):
-        self.commandDispatcher[command](args)
+    def runCommand(self, command : Command, args : list[str]) -> None:
+       self.commandDispatcher[command](args)
     
     def takeInput(self):
         inputtedCommand = self.interface.getCommand()
-        inputtedArgs = self.interface.getCommandArgs(inputtedCommand)
+        inputtedArgs = self.interface.getCommandArgs(inputtedCommand.value)
         self.runCommand(inputtedCommand, inputtedArgs)
-        if (inputtedCommand != CommandList.END):
+        if (inputtedCommand != PluginCommands.END):
             self.takeInput()
         
-    def run(self, args):
-        self.interface.output("Running .cfr file")
+    def run(self, args : list[str]):
+        self.connection.command("load_tree " + args[0])
         
-    def checkfile(self, args):
+    def checkfile (self, arg : list[str]):
         self.interface.output("Checking params file")
         
-    def nodelock(self, args):
+    def nodelock(self, args : list[str]):
         self.interface.output("nodelocking")
 
-    def compare(self, args):
+    def compare(self, args : list[str]):
         self.interface.output("comparhing two .cfr files")
     
-    def help(self, args):
-        # we have to explicitely close the solver process
+    def help(self, args : list[str]):
+        # we have to explicitly close the solver process
         self.interface.displayOptions()
         
-    def end(self, args):
+    def end(self, args : list[str]):
         # we have to explicitely close the solver process
         self.interface.output("Closing connection to solver...")
         self.connection.exit()
