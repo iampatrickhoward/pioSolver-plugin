@@ -32,7 +32,9 @@ class Program:
             self.takeInput()
         
     def run(self, args : list[str]):
-        self.connection.command("load_tree " + args[0])
+        self.connection.command("load_tree \"" + args[0] + "\"")
+        op : str = self.connection.command("calc_results")
+        self.interface.output(op)
         
     def checkfile (self, arg : list[str]):
         self.interface.output("Checking params file")
@@ -51,6 +53,6 @@ class Program:
         # we have to explicitely close the solver process
         self.interface.output("Closing connection to solver...")
         self.connection.exit()
-        self.interface.output("Done.")
+        self.interface.output("Done!")
 
         

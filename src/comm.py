@@ -22,7 +22,7 @@ class PluginCommands(Enum):
 
     CHECKFILE = Command("checkfile",
                         [ParamsFileInput("Enter a params file to check")],
-                        "")
+                       "")
 
     NODELOCK = Command(
         "nodelock",
@@ -37,7 +37,8 @@ class PluginCommands(Enum):
         [
             FileInput(Extension.cfr, "Pick the first .cfr file"),
             FileInput(Extension.cfr, "Pick the second .cfr file"),
-        ], ""
-    )
+        ],
+        "")
+    
     END = Command("end", [], "")
     HELP = Command("help", [], "")

@@ -7,17 +7,18 @@ class SolverException(Exception):
 
 class Solver(object):
     
-    solverPath = "C:\PioSOLVER_Free\PioSOLVER3-free.exe"
-    
-    def __init__(self):
+
+    def __init__(self, path : str):
         """
         Create a new solver instance.
         """
-        workingdirectory = pathlib.Path(Solver.solverPath).parent
+        self.solverPath = path
+        
+        workingdirectory = pathlib.Path(self.solverPath).parent
         os.chdir(workingdirectory)
 
         self.process = subprocess.Popen(
-            [Solver.solverPath], bufsize=0, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
+            [self.solverPath], bufsize=0, stdin=subprocess.PIPE, stdout=subprocess.PIPE, universal_newlines=True)
         self.write_line("set_end_string END")
         self.wait_line("END")
         self._hand_order = None

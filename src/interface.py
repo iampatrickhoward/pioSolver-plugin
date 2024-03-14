@@ -83,7 +83,7 @@ class GUInterface(TextInterface):
     def getCommand(self) -> PluginCommands:
         input = choicebox("Pick a command", "Menu", self.commandMap.keys()) 
         if (input is None):
-            input = PluginCommands.END
+            return PluginCommands.END
         return self.commandMap[input]
 
     # gets a file path
@@ -91,7 +91,7 @@ class GUInterface(TextInterface):
         return fileopenbox()
 
     def displayOptions(self):
-        self.output("menu display")
+        self.output("")
     
     def output(self, message) -> None:
         msgbox(message)

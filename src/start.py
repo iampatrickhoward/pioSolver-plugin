@@ -4,11 +4,13 @@ from SolverConnection.solver import Solver
 from interface import TextInterface, GUInterface
 from program import Program
 
-
 def main():
     interface = GUInterface()
     # starts the solver process using the provided .exe path
-    connection = Solver()
+    # solverPath = interface.getFilePath()
+    
+    solverPath = "C:\PioSOLVER\PioSOLVER3-pro.exe"
+    connection = Solver(solverPath)
     # report success
     interface.output("Solver connected successfully! Welcome to PioSolver")
     # The comment `# report success` is indicating that the following line of code is intended to
