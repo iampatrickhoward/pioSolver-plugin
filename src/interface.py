@@ -67,8 +67,11 @@ class TextInterface(Interface):
     
     def getCommandArgs(self, command: Command) -> list[str] :
         userInputs = []
-        for arg in command.args:
-            userInputs.append(self.getArgument(arg))
+        for whichArg in command.args:
+            input = self.getArgument(whichArg)
+            if input is None:
+                return None
+            userInputs.append(input)
         return userInputs
 
     

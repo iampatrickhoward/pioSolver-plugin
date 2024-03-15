@@ -3,6 +3,7 @@ from enum import Enum
 class Extension (Enum):
     cfr = ".cfr"
     csv = ".csv"
+    json = ".json"
 
 class InputType (Enum):
     file = 1

@@ -23,6 +23,7 @@ def main():
     
 
 def example(connection):
+    cfr = ""
     # call and print the result of "show metadata" on the provided .cfr file
     metadata = connection.command(line =f"show_metadata {sys.argv[2]}")
     print_lines(metadata)
@@ -63,4 +64,5 @@ def print_lines(lines):
 
 if __name__ == "__main__":
     main()
+
 
