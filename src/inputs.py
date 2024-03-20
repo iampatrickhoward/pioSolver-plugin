@@ -28,6 +28,8 @@ class FileInput (Input):
     #checks if extension of input is one of allowed extensions
     #checks list of extensions in case add ability for input to be of multiple file types in future
     def isValid (self, input : str) -> bool :
+        if input is None:
+            return False
         validExtensions : list[Extension] = [self.extension]
         for e in validExtensions:
             if (input[-1*len(e.value):]) == e.value:
@@ -37,4 +39,4 @@ class FileInput (Input):
 # a specifically formatted .csv file with specific formatting needed from the user.
 class ParamsFileInput (FileInput):
     def __init__(self, prompt: str):
-        super().__init__(Extension.csv, prompt)
+        super().__init__(Extension.json, prompt)

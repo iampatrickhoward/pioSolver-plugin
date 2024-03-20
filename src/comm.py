@@ -42,3 +42,4 @@ class PluginCommands(Enum):
     
     END = Command("end", [], "")
     HELP = Command("help", [], "")
+    DESCRIBE = Command("describe", [FileInput(Extension.cfr, "Pick a .cfr file")], "")

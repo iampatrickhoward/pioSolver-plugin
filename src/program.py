@@ -15,7 +15,8 @@ class Program:
             PluginCommands.NODELOCK: self.nodelock,
             PluginCommands.COMPARE: self.compare, 
             PluginCommands.END: self.end,
-            PluginCommands.HELP: self.help}
+            PluginCommands.HELP: self.help,
+            PluginCommands.DESCRIBE: self.describe_tree}
         
     def start(self) -> None :
         self.takeInput()    
@@ -34,9 +35,13 @@ class Program:
     def run(self, args : list[str]):
         self.connection.command("load_tree \"" + args[0] + "\"")
         self.connection.command("load_all_nodes \"" + args[0] + "\"")
-        op : str = self.connection.command("go")
-        self.interface.output(op)
+        op = self.connection.command("go")
+        self.interface.output("Solver finished")
         
+    def describe_tree (self, args : list[str]):
+        op = self.connection.command("show_tree_info \"" + args[0] + "\"")
+        self.interface.output(op)
+
     def checkfile (self, arg : list[str]):
         self.interface.output("Checking params file")
         
