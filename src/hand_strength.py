@@ -1,49 +1,45 @@
-
 from SolverConnection.solver import Solver
-import os
+from logging_tools import parseStringToList
+from outputs import fileWriter
+from global_var import solverPath
 
-solverPath = "C:\PioSOLVER\PioSOLVER3-pro.exe"
 connection = Solver(solverPath)
-def main ():
-    
-    count = 0
-    input = "1 1 1 1 1 1 1 0 0 0 0 1 0 0 1 0 0 1 0 1 1 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 0 1 0 0 0 1 0 0 1 0 0 1 0 0 0 1 0 1 1 0 0 0 1 0 0 0 0 1 1 1 1 0 0 0 1 0 0 0 1 1 1 1 0 1 0 0 0 1 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0 1 0 0 0 1 0 0 0 1 1 0 1 0 0 0 0 0 1 0 0 0 1 0 0 1 1 0 1 1 0 0 0 0 0 0 1 0 0 0 1 0 1 1 0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 1 1 1 1 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 1 1 1 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 1 1 1 1 1 0 0 0 0 0 0 1 0 0 0 1 0 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 1 1 1 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 1 0 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 1 1 1 1 1 1 1 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 1 1 1 0 1 1 1 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 1 0 1 1 1 0 1 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 0 0 1 0 0 0 1 0 1 1 0 1 1 1 0 1 0 0 0 0 0 1 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 1 1 1 0 1 1 1 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 1 1 1 0 1 1 1 0 1 1 1 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 1 1 1 1 1 0 1 1 1 0 1 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 0 0 1 0 0 0 1 0 1 1 1 1 1 1 0 1 1 1 0 1 0 0 0 0 0 1 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 1 1 1 1 1 1 1 0 1 1 1 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 0 0 1 0 0 0 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 1 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 0 1 1 1 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 0 1 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 0 1 0 0 0 0 0 1 0 0 0 0 0 0 0 1 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 0 0 0 0 1 0 0 0 1 1 1 0 1 1 1 1 0 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 0 1 1 1 0 0 0 0 0 1 0 0 1 1 1 0 1 1 1 1 1 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 0 1 1 0 0 0 0 0 0 0 1 0 1 1 1 0 1 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0"
-    for elem in input:
-        if (elem == "1"):
-            count = count + 1
-    
-    treePath = "C:\\" + "\"Users\\" + "degeneracy station\\" + "Documents\\" + "PioSolver-plugin\\" + "As5h3s.cfr\""
-    
-    
-    tellPio("load_tree " + treePath)
-    tellPio("load_all_nodes")
-    tellPio("show_strategy_pp r:0")
-    print_block()
-    tellPio("show_strategy r:0")
-    print_block()
-    tellPio("unlock_node r:0")
-    tellPio("set_strategy r:0 " + create_strategy())
-    tellPio("lock_node r:0")
-    tellPio("show_strategy_pp r:0")    
+totalCombos = 1326
+fpath = "C:\\" + "Users\degeneracy station\Documents\PioSolver-plugin\\"
 
-def tellPio(string):
-    print(connection.command(string))
-
-def print_block():
-    print()
-    print()
-    print()
-    print("-----------------------------------------------------------------------------")
-    print()
-    print()
-    print()
+def main() :
+    cfrFile = "As5h3s"
+    treePath = "\"C:\\" + "Users\\" + "degeneracy station\\" + "Documents\\" + "PioSolver-plugin\\" + cfrFile + ".cfr\""
     
-def create_strategy():
-    input = ""
-    for i in range(0,1326):
-        input = input + "0 "
+    nodeID = "r:0:c"
     
-    return input
+    connection.command("load_tree " + treePath)
+    connection.command("load_all_nodes")
+    print("ready")
+    # example output: ['r:0:c', 'IP_DEC', 'As 5h 3s', '0 0 55', '2 children', 'flags: PIO_CFR', '']
+    op : list[str] = connection.command("show_node " + nodeID)
+    # remove whitespace from board
+    board : str = op[2].replace(" ", "")
+    print(board)
+    op = connection.command("show_category_names")
+    hand_categories = parseStringToList(op[0])
+    draw_categories = parseStringToList(op[1])
+    
+    hand_categ_map = {}
+    draw_categ_map = {}
+    
+    i = 0
+    for category in hand_categories:
+        hand_categ_map[i] = category
+        i = i + 1
+    i = 0
+    for category in draw_categories:
+        draw_categ_map[i] = category
+        i = i + 1
+    
+    fileWriter.mapToJSON("hand_categories.json", hand_categ_map)
+    
 
 if __name__ == "__main__":
     main()
+
