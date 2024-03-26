@@ -1,7 +1,10 @@
 from comm import PluginCommands, Command
-from interface import Interface
+from interface import Interface, TextInterface
 from SolverConnection.solver import Solver
 from typing import Callable
+import unittest
+from global_var import solverPath
+
 
 class Program:
     
@@ -60,4 +63,13 @@ class Program:
         self.connection.exit()
         self.interface.output("Closing connection to solver...done!")
 
-        
+    
+
+class Tests(unittest.TestCase):
+    
+    def testCommandDispatcher(self):
+        p = Program(Solver(solverPath), TextInterface())
+        self.assertTrue(callable(p.commandDispatcher[PluginCommands.RUN]))
+
+if __name__ == '__main__': 
+    unittest.main() 

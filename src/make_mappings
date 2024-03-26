@@ -1,29 +1,54 @@
-
 from SolverConnection.solver import Solver
-from logging_tools import parseOutputToList, makeString
-from outputs import fileWriter
-from global_var import solverPath
-
+from logging_tools import parseStringToList,parseOutputToList, treePath, makeString
+from fileIO import fileWriter
+from global_var import solverPath, totalCombos
 
 connection = Solver(solverPath)
 totalCombos = 1326
 handMap : dict[int, str] = {} 
+mapFolder = "mappings\\"
     
-def main ():
+    
+def main():
+    makeHandAndDrawCategories()
+    
     # "C:\Users\degeneracy station\Documents\PioSolver-plugin\fullrange.cfr"
     
     # three trees with totally distinct flop boards and full ranges (so no dead combos)
     # any combo with card that is on board is considered outside range. Having three trees ensures every combo is hit at least once.
-    fillHands("As5h3s")
-    fillHands("KdTc9h")
-    fillHands("Qh6c5s")
+    fillHands("cfrFiles\\" + "As5h3s")
+    fillHands("cfrFiles\\" + "KdTc9h")
+    fillHands("cfrFiles\\" + "Qh6c5s")
     
-    for i in range(0,totalCombos):
-        if i not in handMap:
-            print(i)
+    fileWriter.mapToJSON(mapFolder + "handIndexMap", handMap)
     
-    fileWriter.mapToJSON("handIndexMap.json", handMap)
-    fileWriter.mapToCSV("handIndexMap.csv", handMap)
+def makeHandAndDrawCategories():
+    op = connection.command("show_category_names")
+    
+    #the first line has all the hand categories
+    hand_categories = parseStringToList(op[0])
+    #the second line has all the draw categories
+    draw_categories = parseStringToList(op[1])
+    
+    hand_categ_map = {}
+    draw_categ_map = {}
+    
+    # loop through the printed categories and create a mapping with sequential numbers.
+    # these are the numbers PioSolver uses to refer to different categories
+    i = 0
+    for category in hand_categories:
+        hand_categ_map[category] = i
+        i = i + 1
+        
+    i = 0
+    for category in draw_categories:
+        draw_categ_map[category] = i
+        i = i + 1
+        
+    
+    #write to a JSON file
+    fileWriter.mapToJSON(mapFolder + "hand_categories", hand_categ_map)
+    fileWriter.mapToJSON(mapFolder + "draw_categories", draw_categ_map)
 
         
 
@@ -36,12 +61,12 @@ def tellPio(string):
 # then writes that hand to a map.
 def fillHands(cfrFile: str):
     map : dict[int, str] = {} 
-    treePath = "\"C:\\" + "Users\\" + "degeneracy station\\" + "Documents\\" + "PioSolver-plugin\\" + cfrFile + ".cfr\""
+    path = treePath(cfrFile)
     print ("Filling hands using: " + cfrFile)
     
     nodeID = "r:0:c"
     
-    tellPio("load_tree " + treePath)
+    tellPio("load_tree " + path)
     tellPio("load_all_nodes")
 
     for i in range(0,1326):
@@ -62,7 +87,7 @@ def fillHands(cfrFile: str):
             map[i] = activeHandName
     
     #write hand mapping to a .csv file
-    # fileWriter.mapToCSV(fpath + cfrFile + ".csv", map)
+    # fileWriter.mapToCSV(cfrFile, map)
     
     return map
 

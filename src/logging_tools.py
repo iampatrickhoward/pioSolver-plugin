@@ -1,4 +1,6 @@
 from SolverConnection.solver import Solver
+from global_var import currentdir
+import unittest
 
 def parseOutputToList(strOutput : str) -> list[str]:
     # delimit pioSolver output using whitespace
@@ -20,9 +22,36 @@ def parseStringToList(strOutput : str) -> list[str]:
             output[i] = float(output[i])
     return output
 
+
 # turns list into a string to feed into Pio
 def makeString(elems : list[type]) -> str:
-    strInput = ""
+    strInput : str = ""
     for i in elems:
-        strInput = strInput + " " + i.__str__()
-    return strInput
+        strInput = strInput + i.__str__() + " "
+    #removes whitespace at end
+    return strInput[0: len(strInput) - 1]
+
+def printList (lst):
+    print("------------------------------")
+    for i in lst:
+        print(i)
+    print("------------------------------")
+
+# encloses a string in quotes. this is how file names need to be give to Pio
+def inQuotes (string : str) -> str:
+    return "\"" + string + "\""
+
+def treePath (fName: str) -> str:
+    return inQuotes(currentdir + fName + ".cfr")
+
+class Tests(unittest.TestCase):
+    
+    def testInQuotes(self):
+        self.assertEqual(inQuotes("hi"), "\"hi\"")
+        
+    def testListToString(self):
+        string = makeString([1, 2, 3])
+        self.assertEqual(string, "1 2 3")
+
+if __name__ == '__main__': 
+    unittest.main() 

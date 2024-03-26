@@ -3,13 +3,13 @@ import os
 from SolverConnection.solver import Solver
 from interface import TextInterface, GUInterface
 from program import Program
+from global_var import solverPath
 
 def main():
     interface = TextInterface()
     # starts the solver process using the provided .exe path
     # solverPath = interface.getFilePath()
     
-    solverPath = "C:\PioSOLVER\PioSOLVER3-pro.exe"
     connection = Solver(solverPath)
     # report success
     interface.output("Solver connected successfully! Welcome to PioSolver")

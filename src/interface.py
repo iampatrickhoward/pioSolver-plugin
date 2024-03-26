@@ -1,8 +1,10 @@
 from comm import Command, PluginCommands
 from inputs import InputType, Input
+from global_var import solverPath
 from tkinter.filedialog import askopenfilename
 from easygui import *
 import os
+import unittest
 
 # Handles the interface. Graphical / web interfaces can be created by extending this class
 def clearConsole():
@@ -59,7 +61,8 @@ class TextInterface(Interface):
         self.output(arg.prompt)
         # call the function that retrieves this type of argument
         input = self.inputGetterMap[arg.type]()
-        if (arg.isValid(input)):
+        
+        if (arg.ReadInput(input)):
             return input
         else:
             self.output("That's not a valid input, try again!")
@@ -102,3 +105,29 @@ class GUInterface(TextInterface):
     def openFileDialogue (self) -> str:
         filename = askopenfilename() # show an "Open" dialog box and return the path to the selected file
         return filename
+    
+    
+    
+#-----------------------------------------------TESTS----------------------------------------------
+
+class Tests(unittest.TestCase):
+
+    def testInstantiation(self):
+        # make sure names of commands are properly populated in map
+        i = Interface()
+        for c in PluginCommands:
+            self.assertIn(c.value.name, i.commandMap)
+        #make sure inputGetterMap returns functions
+        for n in i.inputGetterMap.values():
+            self.assertIs(callable(n), True)
+        
+    def testGUI(self): # show an "Open" dialog box and return the path to the selected file
+        i = GUInterface()
+        print(i.getCommand())
+        print(i.getText())
+        print(i.getFilePath())
+        i.output("testing")
+
+
+if __name__ == '__main__': 
+    unittest.main() 
