@@ -10,6 +10,7 @@ mapFolder = "mappings\\"
     
     
 def main():
+    
     makeHandAndDrawCategories()
     
     # "C:\Users\degeneracy station\Documents\PioSolver-plugin\fullrange.cfr"

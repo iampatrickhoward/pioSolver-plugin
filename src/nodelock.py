@@ -1,16 +1,8 @@
 from SolverConnection.solver import Solver
 from logging_tools import parseStringToList, printList, treePath, makeString, parseNodeIDtoList, makeNodeIDfromList
 from fileIO import fileReaderLocal, fileReader
-from global_var import solverPath, totalCombos, sampleCFR, sampleNodeID, sampleFolder, mappingsFolder
+from global_var import solverPath, totalCombos, sampleCFR, sampleNodeID, sampleFolder, mappingsFolder, currentdir
 import unittest
-
-
-sampleConnection = Solver(solverPath)
-samplePath = treePath(sampleCFR)
-sampleWeightsFile = sampleFolder + "weights"
-    
-sampleConnection.command("load_tree " + samplePath)
-sampleConnection.command("load_all_nodes")
 
 
 class NodeLocker(): 
@@ -33,13 +25,10 @@ class NodeLocker():
         self.connection.command("unlock_node " + parentID) 
         
         # the strategy map of the target node and all its sister node
-        # format: a list of strings, each having 1326 floats (one per combo)
-        strategy = self.connection.command("show_strategy " + parentID) 
+        # format: a list of a list of 1326 floats (one per combo)
+        strategy = self.getCurrentStrategyAsList(parentID)
+
         
-        # turn each strategy into a list of numbers
-        self.strategyStringToList(strategy)
-        
-        #printList(strategy)
         
         self.alter_strategy(strategy, weightMap, targetIndex, targetNodeID)
         
@@ -51,12 +40,17 @@ class NodeLocker():
         self.connection.command("lock_node " + parentID) 
     
     
-        
+    
+    def getCurrentStrategyAsList(self, nodeID: str) -> list[list[float]] :
+        strategy = self.connection.command("show_strategy " + nodeID)
+        # turn each individual strategy (string) in the list into a list of numbers
+        return self.strategyStringToList(strategy) 
 
 
     def strategyStringToList (self, strategy : list[str]) -> list[list[float]] :
         for i in range(0,len(strategy)):
             strategy[i] = parseStringToList(strategy[i])
+        return strategy
 
     def strategyListToString (self, strategy : list[list[float]]) -> list[str] :
         for i in range(0,len(strategy)):
@@ -114,7 +108,7 @@ class NodeLocker():
 
         
     def parseCategories(self, nodeID):
-        op = self.connection.command("show_categories " + getBoard(nodeID))
+        op = self.connection.command("show_categories " + self.getBoard(nodeID))
         # a 1326 length list of integers, each referencing the hand category the corresponding combo belongs to.
         hand_per_combo = parseStringToList(op[0])
         draw_per_combo = parseStringToList(op[1])
@@ -148,6 +142,13 @@ class NodeLocker():
             if category_name in draw_category_index:
                 strategy = self.update_weight(strategy, targetIndex, target_draw_cats, draw_category_index.get(category_name), weightMap.get(category_name), addInsteadOfReplace)
 
+    # when entering in weights in JSTON, could be decimal or percentage. 
+    # this taccounts for inconsistency in human entry (20% could be typed in as .2 or 20)
+    def normalizeWeight(self, weight_in_JSON: float) -> float:
+        if (weight_in_JSON > 1):
+                weight_in_JSON = weight_in_JSON/100
+        return weight_in_JSON
+    
     # alters the combos that belong to the given category to the given weight
     # updates the corresponding combos in the other child nodes to a weight that keeps the proportions of the other strategies the same as before
     def update_weight(self, strategy : list[list[float]], targetIndex : int, categoriesOfCombos : list[int], category : int, newWeight : float, addWeight : bool) -> list[float]:
@@ -157,9 +158,7 @@ class NodeLocker():
                 
                 oldWeight = strategy[targetIndex][comboIndex]
             
-                # when entering in weights, could be decimal or percentage. account for inconsistency in human entry (20% could be typed in as .2 or 20)
-                if (newWeight > 1):
-                    newWeight = newWeight/100
+                newWeight = self.normalizeWeight(newWeight)
                     
                 if addWeight:
                     newWeight = oldWeight + newWeight
@@ -179,40 +178,56 @@ class NodeLocker():
         return strategy
 
 
+sampleConnection = Solver(solverPath)
+samplePath = treePath(sampleCFR)
+sampleWeightsFile = currentdir + sampleFolder + "weights.json"
+    
+sampleConnection.command("load_tree " + samplePath)
+sampleConnection.command("load_all_nodes")
+
+nodelocker = NodeLocker(sampleConnection)
+        
+comboWeights = fileReader.JSONtoMap(sampleWeightsFile)
+comboIndexes = fileReaderLocal.JSONtoMap(mappingsFolder + "handIndexMap")
+
         
 class Tests(unittest.TestCase):
-
-    def __init__(self, methodName: solverPath = "runTest") -> None:
-        super().__init__(methodName)
-        
-        self.sampleConnection = Solver(solverPath)
-        self.samplePath = treePath(sampleCFR)
-        self.sampleWeightsFile = sampleFolder + "weights"
     
-        self.sampleConnection.command("load_tree " + samplePath)
-        self.sampleConnection.command("load_all_nodes")
-        self.nodelocker = NodeLocker(sampleConnection)
         
-        self.comboWeights = fileReaderLocal.JSONtoMap(self.sampleWeightsFile)
+    def testNodelocking(self):
+        comboWeights = fileReader.JSONtoMap(sampleWeightsFile)
+        comboIndexes = fileReaderLocal.JSONtoMap(mappingsFolder + "handIndexMap")
         
+        self.assertEqual(list(comboWeights.keys()), ["king_high", "bdfd_2card"])
         
-    def testReadWeightMap(self):
-        self.assertEqual(list(self.comboWeights.keys()), ["king_high", "bdfd_2card"])
-        
-    def testParseCategories(self):
-        printList(self.nodelocker.parseCategories(sampleNodeID))
-        
-    def testNodeLocking(self):
-        self.nodelocker.set_strategy(self.sampleWeightsFile, sampleNodeID)
-        
-        nodeInfo = self.nodelocker.get_parent_and_id_of_targetNode()
+        nodeInfo = nodelocker.get_parent_and_id_of_targetNode(sampleNodeID)
         parentID = nodeInfo[0]
-        index = nodeInfo[1]
+        targetIndex = nodeInfo[1]
         
-        finalStrategy = self.connection.command("show_strategy " + parentID)
+        self.assertEqual(parentID, "r:0:c")
         
+        oldStrategy = nodelocker.getCurrentStrategyAsList(parentID)
         
-    
+        for s in oldStrategy:
+            self.assertEqual(len(s), totalCombos)
+            self.assertEqual(s[0], 0.5)
+        
+        nodelocker.set_strategy(sampleWeightsFile, sampleNodeID)
+        
+        finalStrategy = nodelocker.getCurrentStrategyAsList(parentID)
+        
+        king_high_index = comboIndexes.get("KsQs")
+        bd_2_index = comboIndexes.get("AhKh")
+        
+        king_high_correct_weight = nodelocker.normalizeWeight(comboWeights.get("king_high"))
+        bd_2_correct_weight =  oldStrategy[targetIndex][bd_2_index] + nodelocker.normalizeWeight(comboWeights.get("bdfd_2card"))
+            
+        
+        self.assertAlmostEqual(finalStrategy[targetIndex][king_high_index], king_high_correct_weight)
+        self.assertAlmostEqual(finalStrategy[1-targetIndex][king_high_index], 1 - king_high_correct_weight)
+        
+        self.assertAlmostEqual(finalStrategy[targetIndex][bd_2_index], bd_2_correct_weight)
+        self.assertAlmostEqual(finalStrategy[1-targetIndex][bd_2_index], 1 - bd_2_correct_weight)
         
 
 if __name__ == '__main__': 
