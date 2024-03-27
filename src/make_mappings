@@ -1,11 +1,11 @@
 from SolverConnection.solver import Solver
 from logging_tools import parseStringToList,parseOutputToList, treePath, makeString
 from fileIO import fileWriter
-from global_var import solverPath, totalCombos
+from global_var import solverPath, totalCombos, sampleFolder
 
 connection = Solver(solverPath)
 totalCombos = 1326
-handMap : dict[int, str] = {} 
+handMap : dict[str, int] = {} 
 mapFolder = "mappings\\"
     
     
@@ -16,9 +16,9 @@ def main():
     
     # three trees with totally distinct flop boards and full ranges (so no dead combos)
     # any combo with card that is on board is considered outside range. Having three trees ensures every combo is hit at least once.
-    fillHands("cfrFiles\\" + "As5h3s")
-    fillHands("cfrFiles\\" + "KdTc9h")
-    fillHands("cfrFiles\\" + "Qh6c5s")
+    fillHands(sampleFolder + "As5h3s")
+    fillHands(sampleFolder + "KdTc9h")
+    fillHands(sampleFolder + "Qh6c5s")
     
     fileWriter.mapToJSON(mapFolder + "handIndexMap", handMap)
     
@@ -82,7 +82,7 @@ def fillHands(cfrFile: str):
             activeHandName = getHandNameIfActive(hand)
             # if this is the active hand, add it to the mapping and end loop
             if activeHandName is not None:
-                handMap[i] = activeHandName
+                handMap[activeHandName] = i
                 break
             map[i] = activeHandName
     

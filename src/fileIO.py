@@ -7,7 +7,7 @@ import unittest
 class fileWriter():
     
     def mapToCSV(fname : str, map) -> None:        
-        # print("writing to " + currentdir + fname + ".csv")
+        #print("writing to " + currentdir + fname + ".csv")
         with open(currentdir + fname, 'w+', newline='') as file:
             w = csv.writer(file)
             for m in map:
@@ -20,7 +20,7 @@ class fileWriter():
             json.dump(map, file)
         file.close()
 
-class fileReader():
+class fileReaderLocal():
     def JSONtoMap(fname : str) -> dict:
         # print("reading from " + currentdir + fname + ".json")
         f = open(currentdir + fname + ".json")
@@ -28,7 +28,13 @@ class fileReader():
         f.close()
         return map
     
-
+class fileReader():
+    def JSONtoMap(fpath : str) -> dict:
+        # print("reading from " + currentdir + fname + ".json")
+        f = open(fpath)
+        map = json.load(f)
+        f.close()
+        return map
 
 class Tests(unittest.TestCase):
 
