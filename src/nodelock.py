@@ -160,11 +160,11 @@ class NodeLocker():
             
                 newWeight = self.normalizeWeight(newWeight)
                     
-                if addWeight:
-                    newWeight = oldWeight + newWeight
+                #if addWeight:
+                    #newWeight = oldWeight + newWeight
                     
-                    if newWeight < 0:
-                        raise Exception("Weight adjustment entered is invalid; cannot have negative percentage")
+                if newWeight < 0:
+                    raise Exception("Weight adjustment entered is invalid; cannot have negative percentage")
                 
                 # this is constant that, multiplied by the weight of the other nodes, will maintain their relative proportions
                 k = (1 - newWeight)/(1 - oldWeight)
@@ -220,12 +220,13 @@ class Tests(unittest.TestCase):
         bd_2_index = comboIndexes.get("AhKh")
         
         king_high_correct_weight = nodelocker.normalizeWeight(comboWeights.get("king_high"))
-        bd_2_correct_weight =  oldStrategy[targetIndex][bd_2_index] + nodelocker.normalizeWeight(comboWeights.get("bdfd_2card"))
-            
+        #bd_2_correct_weight =  oldStrategy[targetIndex][bd_2_index] + nodelocker.normalizeWeight(comboWeights.get("bdfd_2card"))
+        bd_2_correct_weight = nodelocker.normalizeWeight(comboWeights.get("bdfd_2card"))
+        
+        #printList(finalStrategy)
         
         self.assertAlmostEqual(finalStrategy[targetIndex][king_high_index], king_high_correct_weight)
         self.assertAlmostEqual(finalStrategy[1-targetIndex][king_high_index], 1 - king_high_correct_weight)
-        
         self.assertAlmostEqual(finalStrategy[targetIndex][bd_2_index], bd_2_correct_weight)
         self.assertAlmostEqual(finalStrategy[1-targetIndex][bd_2_index], 1 - bd_2_correct_weight)
         
