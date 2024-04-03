@@ -1,7 +1,7 @@
 from SolverConnection.solver import Solver
 from logging_tools import parseStringToList, printList, treePath, makeString, parseNodeIDtoList, makeNodeIDfromList
 from fileIO import fileReaderLocal, fileReader
-from global_var import solverPath, totalCombos, sampleCFR, sampleNodeID, sampleFolder, mappingsFolder, currentdir
+from global_var import solverPath, totalCombos, sampleCFR, sampleNodeID, sampleFolder, mappingsFolder, currentdir, hand_category_index, draw_category_index, exception_categories
 import unittest
 
 
@@ -116,15 +116,7 @@ class NodeLocker():
 
     # checks if category is draw or hand category and updates weights accordingly
     def alter_strategy(self, strategy : list[list[float]], weightMap : dict[str, int], targetIndex: int, targetNodeID : str) -> list[float]:
-        # format: {"nothing": 0, "king_high": 1, "ace_high": 2, "low_pair": 3...
-        
-        hand_category_index = fileReaderLocal.JSONtoMap(mappingsFolder + "hand_categories")
-        # format: {"no_draw": 0, "bdfd_1card": 1, "bdfd_2card": 2, ...
-        draw_category_index = fileReaderLocal.JSONtoMap(mappingsFolder + "draw_categories")
-        
-        # there are certain draw categories where the weight inputted by the user is meant to be added to the original weight rather than replacing it
-        exception_categories = fileReaderLocal.JSONtoMap(mappingsFolder + "exception_categories")
-        
+
         # derives the hand and draw categories (their indexes) of combos in target node from pio output
         target_categories = self.parseCategories(targetNodeID)
         target_hand_cats= target_categories[0]

@@ -6,6 +6,7 @@ import unittest
 
 class fileWriter():
     
+    @staticmethod
     def mapToCSV(fname : str, map) -> None:        
         #print("writing to " + currentdir + fname + ".csv")
         with open(currentdir + fname, 'w+', newline='') as file:
@@ -14,6 +15,7 @@ class fileWriter():
                 w.writerow([m, map[m]])
         file.close()
 
+    @staticmethod
     def mapToJSON(fname : str, map):
         # print("writing to " + currentdir + fname + ".json")
         with open(currentdir + fname + ".json", "w+") as file:
@@ -21,18 +23,25 @@ class fileWriter():
         file.close()
 
 class fileReaderLocal():
+    
+    @staticmethod
     def JSONtoMap(fname : str) -> dict:
         # print("reading from " + currentdir + fname + ".json")
         f = open(currentdir + fname + ".json")
-        map = json.load(f)
+        map : dict = json.load(f)
         f.close()
         return map
     
+    @staticmethod
+    def getLocalPath(fname : str) -> str:
+        return currentdir + fname
+    
 class fileReader():
+    @staticmethod
     def JSONtoMap(fpath : str) -> dict:
         # print("reading from " + currentdir + fname + ".json")
         f = open(fpath)
-        map = json.load(f)
+        map : dict = json.load(f)
         f.close()
         return map
 
@@ -42,7 +51,8 @@ class Tests(unittest.TestCase):
         map = {"pop" : 1, "fizz" : 2, "cherry" : 3}
         fname = "testJSON"
         fileWriter.mapToJSON(fname, map)
-        output = fileReader.JSONtoMap(fname)
+        
+        output = fileReaderLocal.JSONtoMap(fname)
         for m in map:
             self.assertEqual(output.get(m), map.get(m))
             

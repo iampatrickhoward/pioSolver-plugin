@@ -1,13 +1,14 @@
 from SolverConnection.solver import Solver
+import re
+from errorMessages import Errors
 from global_var import currentdir
 import unittest
 
-def isfloat(string):
+def toFloat(string :str):
     try:
-        float(string)
-        return True
+        return float(string)
     except ValueError:
-        return False
+        return string
 
 def parseOutputToList(strOutput : str) -> list[str]:
     # delimit pioSolver output using whitespace
@@ -15,8 +16,7 @@ def parseOutputToList(strOutput : str) -> list[str]:
     # strip of colons and additional whitespace
     for i in range(0, len(output)):
         output[i] = output[i].strip(": ")
-        if isfloat(output[i]):
-            output[i] = float(output[i])
+        output[i] = toFloat(output[i])
     return output
 
 def parseStringToList(strOutput : str) -> list[str]:
@@ -25,14 +25,18 @@ def parseStringToList(strOutput : str) -> list[str]:
     # strip of colons and additional whitespace
     for i in range(0, len(output)):
         output[i] = output[i].strip()
-        if isfloat(output[i]):
-            output[i] = float(output[i])
+        output[i] = toFloat(output[i])
     return output
 
 
 # node IDs are in the form r:0:c:c:
 def parseNodeIDtoList(nodeID : str) -> list[str]:
     nodes : list [str] = nodeID.split(":")
+    if len(nodes) < 2:
+        raise Exception(Errors.invalid_node(nodeID))
+    if nodes[0] == "r" and nodes[1] == "0":
+        nodes.pop(0)
+        nodes[0] = "r:0"
     return nodes
 
 def makeNodeIDfromList(nodes : list[str]) -> str:
@@ -72,8 +76,8 @@ class Tests(unittest.TestCase):
         self.assertEqual(inQuotes("hi"), "\"hi\"")
         
     def testStringToList(self):
-        self.assertEqual(isfloat("0.5"), True)
-        self.assertEqual(isfloat("05"), True)
+        self.assertEqual(toFloat("0.5"), 0.5)
+        self.assertEqual(toFloat("05"), 5.0)
         s = '0.5 0.5'
         list = parseStringToList(s)
         self.assertEqual(list, [0.5, 0.5])
@@ -86,7 +90,7 @@ class Tests(unittest.TestCase):
         nodeID = "r:0:c:c:b25:turn"
         nodeList = parseNodeIDtoList(nodeID)
         nodeIDagain = makeNodeIDfromList(nodeList)
-        self.assertEqual(nodeList, ["r", "0", "c", "c", "b25", "turn"])
+        self.assertEqual(nodeList, ["r:0", "c", "c", "b25", "turn"])
         self.assertEqual(nodeID, nodeIDagain)
 
 if __name__ == '__main__': 
