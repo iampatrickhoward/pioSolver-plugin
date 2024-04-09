@@ -19,6 +19,7 @@ class Interface:
             InputType.file: self.getFilePath,
             InputType.text: self.getText,
             InputType.number: self.getText,
+            InputType.directory: self.getFolder
         }
 
     # displays possible commands
@@ -36,9 +37,13 @@ class Interface:
     def getFilePath(self) -> str:
         return input()
     
+    def getFolder(self) -> str:
+        return self.getFilePath()
+    
     # output message
     def output(self, message) -> None:
         print(message)
+        
         
 
 
@@ -61,12 +66,17 @@ class TextInterface(Interface):
         self.output(arg.prompt)
         # call the function that retrieves this type of argument
         input = self.inputGetterMap[arg.type]()
-        
-        if (arg.ReadInput(input)):
-            return input
-        else:
-            self.output("That's not a valid input, try again!")
-            return self.getArgument(arg)
+        # check if input is valid
+        try: 
+            return arg.parseInput(input)
+        except Exception as e:
+            # if the user cancels the dialogue box return None
+            if input is None:
+                return None
+            # print error message to user
+            self.output(str(e))
+            # get Argument again 
+            self.getArgument(arg)
     
     def getCommandArgs(self, command: Command) -> list[str] :
         userInputs = []
@@ -95,6 +105,9 @@ class GUInterface(TextInterface):
     # gets a file path
     def getFilePath(self) -> str:
         return fileopenbox()
+
+    def getFolder(self) -> str:
+        return diropenbox()
 
     def displayOptions(self):
         self.output("")

@@ -1,6 +1,6 @@
 from enum import Enum
 from global_var import hand_category_index, draw_category_index, exception_categories, sampleFolder
-from fileIO import fileWriter, fileReader, fileReaderLocal
+from fileIO import fileReader, fileReaderLocal
 from logging_tools import parseNodeIDtoList, toFloat
 from errorMessages import Errors
 import os
@@ -10,13 +10,12 @@ class Extension (Enum):
     cfr = ".cfr"
     csv = ".csv"
     json = ".json"
-    # folders have no extension
-    folder = ""
 
 class InputType (Enum):
     file = 1
     number = 2
     text = 3
+    directory = 4
     
 # an input needed by the user, with accompanying prompt
 class Input ():
@@ -28,9 +27,12 @@ class Input ():
     def isValid (self, input: str) -> bool:
         return True
     
-    def readInput (self, input: str):
+    # if Input is valid, return input, otherwise raise Exception
+    def parseInput (self, input: str):
         if self.isValid(input) :
             return input
+        else:
+            raise Exception("Invalid Input")
 
 # a file input with specific extension or extensions needed from the user
 class FileInput (Input):
@@ -45,7 +47,7 @@ class FileInput (Input):
         return False
     
     # check if file type is correct, if so return
-    def readInput(self, input : str) :
+    def parseInput(self, input : str) :
         if self.isCorrectExtension(input):
             return input
         raise Exception(Errors.wrongFileType(self.extension))
@@ -53,12 +55,12 @@ class FileInput (Input):
 
 class FolderOf (FileInput) :
 
-    
     def __init__(self, extension: Extension, prompt: str):
         super().__init__(extension, prompt)
+        self.type = InputType.directory
     
-    # check if file type is correct, if so return
-    def readInput(self, input : str) -> list[str] :
+    # return a list where first element is folder and second element is list of files belonging to this type
+    def parseInput(self, input : str) -> list :
         allFilesInside : list [str] = []
         try: 
             allFilesInside = os.listdir(input)
@@ -71,7 +73,7 @@ class FolderOf (FileInput) :
                 neededFiles.append(f)
         if not neededFiles:
             raise Exception(Errors.invalidFolder + Errors.noFilesinFolder(self.extension))
-        return neededFiles
+        return [input, neededFiles]
     
 class WeightsFile (FileInput):
     def __init__(self, prompt: str):
@@ -79,8 +81,8 @@ class WeightsFile (FileInput):
     
     # input: a file path from the interface
     # output: a map of valid category names and their corresponding weights
-    def readInput(self, input : str) -> dict[str, int] :
-        input = super().readInput(input)
+    def parseInput(self, input : str) -> dict[str, int] :
+        input = super().parseInput(input)
         weightMap : dict = fileReader.JSONtoMap(input)
         
         for category_name in weightMap:
@@ -88,6 +90,8 @@ class WeightsFile (FileInput):
             if not validName:
                 raise Exception(Errors.invalidCategory(category_name))
             weight = toFloat(str(weightMap.get(category_name)))
+            if type(weight) is str:
+                raise Exception(Errors.numericWeights)
             
             if weight < 0 and category_name not in exception_categories:
                 raise Exception(Errors.noNegativeWeights(category_name))
@@ -116,8 +120,8 @@ class BoardFile(FileInput):
         
     # input: a file path from the interface
     # output: a map of cfr file names and their corresponding target nodeIDs
-    def readInput(self, input : str) -> dict[str, str] :
-        input = super().readInput(input)
+    def parseInput(self, input : str) -> dict[str, str] :
+        input = super().parseInput(input)
         
         board = fileReader.JSONtoMap(input)
         nodeID = board.get("all")
@@ -199,7 +203,7 @@ class BoardFile(FileInput):
                 decisionList.append(n[1:])
         
         if len(decisionList) == 0 or decisionList[0] != Decisions.ROOT:
-            raise Exception(Errors.noRootError)
+            raise Exception(Errors.noRootN)
         
         return decisionList
     
@@ -222,8 +226,6 @@ class BoardFile(FileInput):
         
         raise Exception(Errors.invalid_node(node))
         
-        
-
 
 
 class Tests(unittest.TestCase):
@@ -237,7 +239,7 @@ class Tests(unittest.TestCase):
         try:
             BoardFile.makeDecisionList("c:c:b15")
         except Exception as e:
-            self.assertEqual(str(e), Errors.noRootError)
+            self.assertEqual(str(e), Errors.noRootNode)
         try:
             BoardFile.makeDecisionList("r")
         except Exception as e:
@@ -252,20 +254,21 @@ class Tests(unittest.TestCase):
     
     def testWeightFile(self):
         w = WeightsFile("Enter a weights file.")
-        w.readInput(fileReaderLocal.getLocalPath(sampleFolder + "weights.json"))
+        w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "weights.json"))
         
     def testFolder(self):
         w = FolderOf(Extension.cfr, "Select a folder with .cfr files")
-        files = w.readInput(fileReaderLocal.getLocalPath(sampleFolder))
-        self.assertEqual(files, ['As5h3s.cfr', 'KdTc9h.cfr', 'Qh6c5s.cfr'])
+        files = w.parseInput(fileReaderLocal.getLocalPath(sampleFolder))
+        self.assertEqual(files, [fileReaderLocal.getLocalPath(sampleFolder),
+                                 ['As5h3s.cfr', 'KdTc9h.cfr', 'Qh6c5s.cfr']])
         
         try:
-            w.readInput(fileReaderLocal.getLocalPath(sampleFolder + "weights.json"))
+            w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "weights.json"))
         except Exception as e:
             self.assertEqual(str(e), Errors.invalidFolder)
             
         try:
-            w.readInput(fileReaderLocal.getLocalPath(sampleFolder + "folder"))
+            w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "folder"))
         except Exception as e:
             self.assertEqual(str(e), Errors.invalidFolder + "Folder has no " + w.extension + " files. ")
     
@@ -280,20 +283,20 @@ class Tests(unittest.TestCase):
                                                   "turn" : Decisions.TURN,
                                                   "river" : Decisions.RIVER})
         try:
-            w.readInput(fileReaderLocal.getLocalPath(sampleFolder + "board_bad.json"))
+            w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "board_bad.json"))
         except Exception as e:
             self.assertEqual(str(e),Errors.noRootNode)
 
-        o = w.readInput(fileReaderLocal.getLocalPath(sampleFolder + "board_turn.json"))
+        o = w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "board_turn.json"))
         self.assertEqual(o, {"As5h3s" : "r:0:c:c:Ah:c",
                              "KdTc9h" : "r:0:c:c:Ts:c",
                              "Qh6c5s" : "r:0:c:c:Ts:c"})
         
-        o = w.readInput(fileReaderLocal.getLocalPath(sampleFolder + "board_simple.json"))
+        o = w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "board_simple.json"))
         self.assertEqual(o, "r:0:c:c:b10")
         
         try:
-            o = w.readInput(fileReaderLocal.getLocalPath(sampleFolder + "board_bad.json"))
+            o = w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "board_bad.json"))
         except Exception as e:
             self.assertEqual(str(e), Errors.noRootNode)
         

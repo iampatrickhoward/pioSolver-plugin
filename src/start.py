@@ -6,7 +6,7 @@ from program import Program
 from global_var import solverPath
 
 def main():
-    interface = TextInterface()
+    interface = GUInterface()
     # starts the solver process using the provided .exe path
     # solverPath = interface.getFilePath()
     
@@ -19,7 +19,6 @@ def main():
     # that the solver has been connected successfully.
     # now let's use created solver connection to call some commands
     program = Program(connection, interface)
-    program.run(["C:\\" + "Users\degeneracy station\Documents\PioSolver-plugin\As5h3s.cfr"])
     program.start()
     
 

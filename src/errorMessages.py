@@ -35,6 +35,8 @@ class Errors():
     def noNegativeWeights (category : str):
         return "Invalid weight for " + category + ". Only exception categories can have negative weights."
     
+    numericWeights = "All weights need to be numeric"
+    
    
     
 

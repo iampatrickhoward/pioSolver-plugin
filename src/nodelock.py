@@ -172,7 +172,7 @@ class NodeLocker():
 
 sampleConnection = Solver(solverPath)
 samplePath = treePath(sampleCFR)
-sampleWeightsFile = currentdir + sampleFolder + "weights.json"
+sampleWeightsFile = currentdir + sampleFolder + "weights"
     
 sampleConnection.command("load_tree " + samplePath)
 sampleConnection.command("load_all_nodes")

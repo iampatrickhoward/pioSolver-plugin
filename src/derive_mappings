@@ -1,6 +1,6 @@
 from SolverConnection.solver import Solver
 from logging_tools import parseStringToList,parseOutputToList, treePath, makeString
-from fileIO import fileWriter
+from fileIO import fileWriterLocal
 from global_var import solverPath, totalCombos, sampleFolder
 
 connection = Solver(solverPath)
@@ -21,7 +21,7 @@ def main():
     fillHands(sampleFolder + "KdTc9h")
     fillHands(sampleFolder + "Qh6c5s")
     
-    fileWriter.mapToJSON(mapFolder + "handIndexMap", handMap)
+    fileWriterLocal.mapToJSON(mapFolder + "handIndexMap", handMap)
     
 def makeHandAndDrawCategories():
     op = connection.command("show_category_names")
@@ -48,8 +48,8 @@ def makeHandAndDrawCategories():
         
     
     #write to a JSON file
-    fileWriter.mapToJSON(mapFolder + "hand_categories", hand_categ_map)
-    fileWriter.mapToJSON(mapFolder + "draw_categories", draw_categ_map)
+    fileWriterLocal.mapToJSON(mapFolder + "hand_categories", hand_categ_map)
+    fileWriterLocal.mapToJSON(mapFolder + "draw_categories", draw_categ_map)
 
         
 

@@ -10,6 +10,14 @@ def toFloat(string :str):
     except ValueError:
         return string
 
+def getDirectoryofFile(fName : str) -> str:
+    path : list[str] = fName.split("\\")
+    path = path[:-1]
+    dir =  ""
+    for p in path:
+        dir = dir + p + "\\"
+    return dir
+
 def parseOutputToList(strOutput : str) -> list[str]:
     # delimit pioSolver output using whitespace
     output : list[str] = strOutput.split("  ")
@@ -28,6 +36,12 @@ def parseStringToList(strOutput : str) -> list[str]:
         output[i] = toFloat(output[i])
     return output
 
+def parseResults(results: list[str]) -> dict[str:str]:
+    evs = {}
+    for r in results:
+        pair : list[str] = r.split(":")
+        evs[pair[0]] = pair[1]
+    return evs
 
 # node IDs are in the form r:0:c:c:
 def parseNodeIDtoList(nodeID : str) -> list[str]:

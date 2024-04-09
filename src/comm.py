@@ -1,5 +1,5 @@
 from enum import Enum
-from inputs import Input, InputType, FileInput, Extension, ParamsFileInput
+from inputs import Input, FileInput, FolderOf, WeightsFile, BoardFile, Extension, InputType
 
 import unittest
 
@@ -20,30 +20,16 @@ class PluginCommands(Enum):
     RUN = Command("run", 
                   [FileInput(Extension.cfr, "Pick a .cfr file to run")],
                   "")
-
-    CHECKFILE = Command("checkfile",
-                        [ParamsFileInput("Enter a params file to check")],
-                       "")
-
-    NODELOCK = Command(
-        "nodelock",
-        [
-            FileInput(Extension.cfr, "Pick a .cfr file to nodelock"),
-            ParamsFileInput("Pick a file with nodelocking parameters"),
-        ], ""
-    )
-
-    COMPARE = Command(
-        "compare",
-        [
-            FileInput(Extension.cfr, "Pick the first .cfr file"),
-            FileInput(Extension.cfr, "Pick the second .cfr file"),
-        ],
-        "")
+    
+    NODELOCK = Command("nodelock",
+                       [FolderOf(Extension.cfr, "Pick a folder of .cfr files"),
+                        WeightsFile ("Pick a weights file"),
+                        BoardFile ("Pick a file with the nodeID and board texture for each .cfr file")],
+                       "Allows you to nodelock a folder of files at once.")
+                            
     
     END = Command("end", [], "")
     HELP = Command("help", [], "")
-    DESCRIBE = Command("describe", [FileInput(Extension.cfr, "Pick a .cfr file")], "")
 
 
 
