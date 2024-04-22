@@ -1,23 +1,29 @@
-from comm import PluginCommands, Command
-from interface import Interface, TextInterface
-from nodelock import NodeLocker
-from logging_tools import parseResults, getDirectoryofFile
+from menu import PluginCommands, Command
+from interface import Interface, TextInterface, GUInterface
+from treeops import TreeOperator
+from inputs import WeightsFile, BoardFile
+from stringFunc import removeExtension, timestamp
 from SolverConnection.solver import Solver
+from solverCommands import SolverCommmand
 from typing import Callable
-from fileIO import fileWriter
+from fileIO import CSVio, IO
 import unittest
 from global_var import solverPath
+import asyncio
+import win32api
 
+consoleLog = True
 
 class Program:
     
     def __init__(self, connection : Solver, interface : Interface):
         self.connection = connection
+        self.command = SolverCommmand(connection)
         self.interface = interface
         #maintain a mapping of the commands to the functions that run them
         self.commandDispatcher : dict[Command, Callable[[list[str]], None]] = { 
-            PluginCommands.RUN: self.run,
-            PluginCommands.NODELOCK: self.nodelock,
+            PluginCommands.RUN: self.get_results,
+            PluginCommands.NODELOCK: self.nodelock_and_save,
             PluginCommands.END: self.end,
             PluginCommands.HELP: self.help}
          
@@ -35,53 +41,147 @@ class Program:
         if (inputtedCommand != PluginCommands.END):
             self.commandRun()
     
-    
-    def load_tree(self, cfrFilePath) :
-        self.connection.command("load_tree \"" + cfrFilePath + "\"")
-        self.connection.command("load_all_nodes")
-        self.interface.output(cfrFilePath + " loaded.")
-    
-    def solve_and_publish(self, results_file_path) :
-        self.connection.command("go")
-        self.connection.command("wait_for_solver")
-        op = self.connection.command("calc_results") 
-        values = parseResults(op)
-        fileWriter.mapToCSV(results_file_path, values)    
-        self.interface.output("Done! results written to " + results_file_path)
+    def tryFunction(self, func , args : list):
+        try:
+            #command not meant to have any inputs
+            if args is None or len(args) == 0:
+                return func()
+            #command meant to take a single input
+            elif len(args) == 1:
+                return func(args[0])
+            #command meant to take a list of
+            else:
+                return func(args)
+        except Exception as e:
+            self.interface.output(str(e))
+            return None
         
-    # args[0] .cfr file
-    # args[1] name of results file
-    # EV OOP and EV IP and ignore the other values
-    def run(self, args : list[str]):
-        self.load_tree(args[0])
-        # publish results to csv file w similar name (remove.cfr) in same folder
-        self.solve_and_publish(args[0][:-4] + "_results.csv")
+    # arg[0] = node
+    # returns the action frequencies for the sister and children nodes of the target node
+    def getAllFrequencies(self, args: list) :
+        nodeID = args[0]
+        treeOp = TreeOperator(self.connection, nodeID)
+        sisterFrequencies = []
+        childFrequencies = []
+        for s in treeOp.sisters:
+            #sisterFrequencies[s] = self.getActionFrequency(s)
+            sisterFrequencies.append(self.getActionFrequency(s))
+        for c in childFrequencies:
+            #childFrequencies[c] = self.getActionFrequency(c)
+            childFrequencies.append(self.getActionFrequency(c))
+    
+        return [sisterFrequencies, childFrequencies]
+        
+    
 
     
-    # args[0] : list of .cfr files
+    # args[0][0] : the folder path
+    # args[0][1] : list of .cfr files
+    # args[1] : the name you want for the result file
+    # args[2] : either a string with the nodeID or a map with .cfr file names -> file-specific nodeIDs
+    def get_results(self, args: list[str]):
+        folder, cfrFiles = args[0]
+        path = folder + "\\results\\" + args[1] + ".csv"
+        nodeBook = args[2]
+        pio = SolverCommmand(self.connection)
+        
+        # arrays that will be written to CSV file
+        toCSV = []
+        title = ["File", "Node"]
+        
+        toCSV.append(title)
+        needsTitles = True
+        
+        for cfr in cfrFiles:
+            self.tryFunction(pio.load_tree, [folder + "\\" + cfr])
+            # The line `nodeID = self.tryFunction(self.get_file_nodeID, [cfr, nodeBook])` is calling
+            # the `tryFunction` method with arguments `self.get_file_nodeID` as the function to try
+            # and `[cfr, nodeBook]` as the arguments to pass to that function.
+            nodeID = self.tryFunction(self.get_file_nodeID, [cfr, nodeBook])
+            if nodeID:
+                thisLine = [cfr, nodeID]
+            
+                treeOp = TreeOperator(connection = self.connection, nodeID = nodeID)
+            
+                #append action frequencies at this node
+                if needsTitles is True:
+                    title.append("frequencies at node")
+                thisLine.append("   ")
+                
+                for s in treeOp.sisters:
+                    if needsTitles is True:
+                        title.append(s)
+                    thisLine.append(str(pio.getActionFrequency([s])))
+                
+                #append action frequencies after this node
+                if needsTitles is True:
+                    title.append("frequencies after node")
+                thisLine.append("   ")
+                
+            
+                children = treeOp.getChildIDs(nodeID)
+                for c in children:
+                    if needsTitles is True:
+                        title.append(c)
+                    thisLine.append(str(pio.getActionFrequency([c])))
+                
+                # for whatever reason, if you cannot get the line frequencies after running the solver, 
+                if needsTitles is True:
+                        title.extend(["", "EV OOP", "EV IP"])
+                thisLine.append("   ")
+                
+                # append EVs to line
+                evs = self.tryFunction(pio.getEV, [])
+                thisLine.extend(evs)
+                
+                toCSV.append(thisLine)
+                
+            needsTitles = False
+            
+        CSVio.addRows(path, toCSV)
+        
+    #args[0] : file Name
+    #args[1] : either a string with the nodeID or a map with .cfr file names -> file-specific nodeIDs
+    def get_file_nodeID(self, args: list[str]):
+        file, nodeBook = args
+        match nodeBook:
+            # there is only one node
+            case str():
+                return nodeBook
+            # each file has unique node
+            case dict():
+                # check if file is in nodeBook
+                if (file in nodeBook):
+                    return nodeBook[file]
+                # perhaps the user entered file names sans extension
+                elif (removeExtension(file) in nodeBook):
+                    return nodeBook[removeExtension(file)]
+                else:
+                    raise Exception(file + "not specific in board file.")
+                    
+    # args[0][0] : the folder path
+    # args[0][1] : list of .cfr files
     # args[1] : map of category names -> weights
     # args[2] : either a string with the nodeID or a map with .cfr file names -> file-specific nodeIDs
-    def nodelock(self, args : list[str]):
-        folder = args[0][0]
-        files = args[0][1]
+    def nodelock_and_save(self, args : list[str]):
+        folder, cfrFiles = args[0]
         categWeights = args[1]
-        nodeID = args[2]
+        nodeBook = args[2]
+        pio = SolverCommmand(self.connection)
+        path = folder + "\\" + "NODELOCK_" + timestamp() + "\\"
+    
         
-        nodelocker = NodeLocker(self.connection)
-        for fName in files:
-            self.load_tree(folder + fName)
-            match nodeID:
-                case str():
-                    nodelocker.set_strategy(categWeights, nodeID)
-                    self.output("Strategy set for " + fName)
-                    self.solve_and_publish(folder + fName + nodeID)
-                case dict():
-                    fileSpecificNodeID = nodeID[fName]
-                    if fileSpecificNodeID is not None:
-                        nodelocker.set_strategy(categWeights, fileSpecificNodeID)
-                        self.output("Strategy set for " + fName)
-                        self.solve_and_publish(folder + fName + "_" + + categWeights + "_" + fileSpecificNodeID + "_results.csv")
-            
+        for cfr in cfrFiles:
+            print(pio.load_tree(folder + "\\" + cfr))
+            nodeID = self.tryFunction(self.get_file_nodeID, [cfr, nodeBook])
+            if nodeID:
+                treeOp = TreeOperator(self.connection, nodeID)
+                treeOp.set_strategy([categWeights, nodeID].copy())
+                self.interface.output("Strategy set for " + cfr)
+                pio.saveTree([path + cfr])
+                
+
+        
         self.interface.output("Done!")
     
     def help(self, args : list[str]):
@@ -96,10 +196,28 @@ class Program:
     
 
 class Tests(unittest.TestCase):
+    def __init__(self, methodName: solverPath = "runTest") -> None:
+        super().__init__(methodName)
+        self.oneFile = ["KdTc9h_small.cfr"]
+        self.allFiles = ["KdTc9h_small.cfr", "Qh6c5s_small.cfr", "As5h3s_small.cfr"]
+        self.sampleFolder = r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample"
+        self.p = Program(Solver(solverPath), GUInterface())
+        self.simple_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\simple_weights.json")
+        self.exception_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\exception_weights.json")
+        self.all_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\all_to_hundred.json")
+        self.b = BoardFile("test").parseInput(self.sampleFolder + r"\board_simple.json")
+        
+    def CommandDispatcher(self):
+        self.assertTrue(callable(self.p.commandDispatcher[PluginCommands.RUN]))
+        
+    def testSolve(self):
+        self.p.get_results([[self.sampleFolder, self.oneFile],"testResults" + timestamp(),self.b])
+        self.p.end([])
     
-    def testCommandDispatcher(self):
-        p = Program(Solver(solverPath), TextInterface())
-        self.assertTrue(callable(p.commandDispatcher[PluginCommands.RUN]))
-
+    def Nodelock(self):
+        self.p.nodelock_and_save([[self.sampleFolder, self.oneFile], self.all_weights, self.b])
+        self.p.end([])
+        
 if __name__ == '__main__': 
     unittest.main() 
+

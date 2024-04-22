@@ -1,7 +1,7 @@
 from enum import Enum
 from global_var import hand_category_index, draw_category_index, exception_categories, sampleFolder
 from fileIO import fileReader, fileReaderLocal
-from logging_tools import parseNodeIDtoList, toFloat
+from stringFunc import parseNodeIDtoList, toFloat
 from errorMessages import Errors
 import os
 import unittest
@@ -107,6 +107,9 @@ class Decisions(Enum):
         TURN = "turn"
         RIVER = "river"
         
+        def __str__(self):
+            return self.value
+        
         @staticmethod
         def getDict():
             return {i.value: i for i in Decisions}
@@ -151,7 +154,11 @@ class BoardFile(FileInput):
                 raise Exception(Errors.needsSpecificFileInfo)
         return nodeID
 
-    
+    @staticmethod
+    def getLastDecision(nodeID : str) :
+        return parseNodeIDtoList(nodeID)[-1]
+        
+
     @staticmethod
     # get the node IDs for each .cfr file 
     def getSpecificNodeIDs (nodeID: str, board : dict) -> dict [str : str]: 
@@ -203,7 +210,7 @@ class BoardFile(FileInput):
                 decisionList.append(n[1:])
         
         if len(decisionList) == 0 or decisionList[0] != Decisions.ROOT:
-            raise Exception(Errors.noRootN)
+            raise Exception(Errors.noRootNode)
         
         return decisionList
     
@@ -230,6 +237,8 @@ class BoardFile(FileInput):
 
 class Tests(unittest.TestCase):
     
+    def testLastDecision(self):
+        self.assertEqual(BoardFile.getLastDecision("r:0:c:c"), "c")
     def testMakeDecisionList(self):
         self.assertEqual(BoardFile.makeDecisionList("r:0"), [Decisions.ROOT])
         try:

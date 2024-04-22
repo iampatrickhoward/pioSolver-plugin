@@ -1,78 +1,73 @@
 from SolverConnection.solver import Solver
-from logging_tools import parseStringToList, printList, treePath, makeString, parseNodeIDtoList, makeNodeIDfromList
+from stringFunc import parseStringToList, printList, treePath, makeString, parseNodeIDtoList, makeNodeIDfromList, strategyListToString, makeStrategyFromList
 from fileIO import fileReaderLocal, fileReader
 from global_var import solverPath, totalCombos, sampleCFR, sampleNodeID, sampleFolder, mappingsFolder, currentdir, hand_category_index, draw_category_index, exception_categories
 import unittest
 
+printConsole = False
 
-class NodeLocker(): 
-    def __init__(self, connection):
+class TreeOperator(): 
+    def __init__(self, connection, nodeID = "r:0:c"):
         self.connection = connection
-        
-        
-    def set_strategy(self, weightsFile, targetNodeID) :
-        
+        if self.connection.command("is_tree_present") == "false":
+            raise Exception("No tree is loaded; cannot perform tree operations")
+            
+        self.nodeID = nodeID
+        # sets the parent, sisters, and index fot he target node
+        self.get_family()
+        self.children = self.getChildIDs(nodeID)
+    
+    
+    
+    # args[0] weightsFile
+    def set_strategy(self, args : list) :
         #makeMappings()
+        weightMap = args[0]
         
+        self.connection.command("unlock_node " + self.parent) 
         
-        weightMap = fileReader.JSONtoMap(weightsFile)
-        
-        targetNodeInfo = self.get_parent_and_id_of_targetNode(targetNodeID)
-        
-        parentID = targetNodeInfo[0]
-        targetIndex = targetNodeInfo[1]
-        
-        self.connection.command("unlock_node " + parentID) 
-        
-        # the strategy map of the target node and all its sister node
+        # the strategy map of the target node and all its sister nodeq
         # format: a list of a list of 1326 floats (one per combo)
-        strategy = self.getCurrentStrategyAsList(parentID)
+        strategy = self.getCurrentStrategyAsList(self.parent)
 
         
-        
-        self.alter_strategy(strategy, weightMap, targetIndex, targetNodeID)
+        self.alter_strategy(strategy, weightMap, self.nodeIndex, self.nodeID)
         
         # set the new target strategy in the original pio output 
-        strategy = self.strategyListToString(strategy)
+        strategy = strategyListToString(strategy)
         
-        self.connection.command("set_strategy " + parentID + " " + strategy)
+        self.connection.command("set_strategy " + self.parent + " " + strategy)
         
-        self.connection.command("lock_node " + parentID) 
+        self.connection.command("lock_node " + self.parent) 
     
     
     
     def getCurrentStrategyAsList(self, nodeID: str) -> list[list[float]] :
         strategy = self.connection.command("show_strategy " + nodeID)
         # turn each individual strategy (string) in the list into a list of numbers
-        return self.strategyStringToList(strategy) 
-
-
-    def strategyStringToList (self, strategy : list[str]) -> list[list[float]] :
-        for i in range(0,len(strategy)):
-            strategy[i] = parseStringToList(strategy[i])
-        return strategy
-
-    def strategyListToString (self, strategy : list[list[float]]) -> list[str] :
-        for i in range(0,len(strategy)):
-            strategy[i] = makeString(strategy[i])
-            #print(strategy[i])
-        return makeString(strategy)
+        return makeStrategyFromList(strategy) 
 
 
     # in order to nodelock a particular decision, we need to reference it by its index number as the child of the parent
-    # this takes a node and returns both in the form [parentNodeID, index]
-    def get_parent_and_id_of_targetNode(self, targetNodeID: str) -> tuple[str : int]:
-        nodes = parseNodeIDtoList(targetNodeID)
+    # this takes a node and returns both in the form [parentNodeID, [sister node IDs], index]
+    def get_family(self):
+        nodes = parseNodeIDtoList(self.nodeID)
         # remove last decision to get parents
         nodes.pop()
-        parentNode = makeNodeIDfromList(nodes)
-        allChildIDs = self.getChildIDs(parentNode)
+        # turn list back into ID
+        self.parent = makeNodeIDfromList(nodes)
+        self.sisters = self.getChildIDs(self.parent)
         index = 0
-        for id in allChildIDs:
-            if id == targetNodeID:
-                return [parentNode, index]
+        for id in self.sisters:
+            if id == self.nodeID:
+                self.nodeIndex = index
+                return
             index = index + 1
-        raise Exception("Invalid decision node")
+            
+        error = "Invalid decision node - the child nodes of " + self.parent + " are: "
+        for id in self.sisters:
+            error = error + " " + id
+        raise Exception(error)
         
         
 
@@ -81,6 +76,8 @@ class NodeLocker():
         # example output: 
         # ['child 0:', 'r:0:c:b16', 'OOP_DEC', 'As 5h 3s', '0 16 55', '3 children', 'flags: PIO_CFR', '', 'child 1:', 'r:0:c:c', 'SPLIT_NODE', 'As 5h 3s', '0 0 55', '49 children', 'flags:', '']
         output = self.connection.command("show_children " + nodeID) 
+        if printConsole:
+            print (output)
         childList = []
         child = []
         ids = []
@@ -124,9 +121,8 @@ class NodeLocker():
         
         for category_name in weightMap:
             # if it is a hand category
-            addInsteadOfReplace = False
-            if category_name in exception_categories:
-                addInsteadOfReplace = True
+            addInsteadOfReplace = category_name in exception_categories
+            
             if category_name in hand_category_index:
                 # inputs: the current strategy, the index of the target node, the category index corresponding to the category name, the weight of that category)
                 strategy = self.update_weight(strategy, targetIndex, target_hand_cats, hand_category_index.get(category_name), weightMap.get(category_name), addInsteadOfReplace)
@@ -144,81 +140,90 @@ class NodeLocker():
     # alters the combos that belong to the given category to the given weight
     # updates the corresponding combos in the other child nodes to a weight that keeps the proportions of the other strategies the same as before
     def update_weight(self, strategy : list[list[float]], targetIndex : int, categoriesOfCombos : list[int], category : int, newWeight : float, addWeight : bool) -> list[float]:
+        newWeight = self.normalizeWeight(newWeight)
         for comboIndex in range(0,totalCombos):
             # if the category of the combo in the target node is equal to the category whose weight we are trying to change
             if categoriesOfCombos[comboIndex] == category:
                 
                 oldWeight = strategy[targetIndex][comboIndex]
-            
-                newWeight = self.normalizeWeight(newWeight)
+                
+                finalWeight = newWeight
+                if addWeight:
+                    finalWeight = oldWeight + newWeight
                     
-                #if addWeight:
-                    #newWeight = oldWeight + newWeight
-                    
-                if newWeight < 0:
+                if finalWeight < 0:
                     raise Exception("Weight adjustment entered is invalid; cannot have negative percentage")
                 
-                # this is constant that, multiplied by the weight of the other nodes, will maintain their relative proportions
-                k = (1 - newWeight)/(1 - oldWeight)
+                if (printConsole):
+                    print("oldWeight : " + str(oldWeight))
+                    print("newWeight : " + str(finalWeight))
+                    
+                
                 
                 # iterate through all child nodes
                 for childIndex in range(0,len(strategy)) :
                     if childIndex == targetIndex:
-                        strategy[childIndex][comboIndex] = newWeight
+                        strategy[childIndex][comboIndex] = finalWeight
                     else :
-                        strategy[childIndex][comboIndex] = round(strategy[childIndex][comboIndex] * k, 7)
+                        # if the other decisions were 0, make them equally likely
+                        if oldWeight == 1:
+                            strategy[childIndex][comboIndex] = round((1 - finalWeight)/(len(strategy) - 1), 7)
+                        #  if not, multiply a constant that will maintain their relative proportions
+                        else:
+                            k = (1 - newWeight)/(1 - oldWeight)
+                            strategy[childIndex][comboIndex] = round(strategy[childIndex][comboIndex] * k, 7)
         return strategy
 
-
-sampleConnection = Solver(solverPath)
-samplePath = treePath(sampleCFR)
-sampleWeightsFile = currentdir + sampleFolder + "weights"
-    
-sampleConnection.command("load_tree " + samplePath)
-sampleConnection.command("load_all_nodes")
-
-nodelocker = NodeLocker(sampleConnection)
-        
-comboWeights = fileReader.JSONtoMap(sampleWeightsFile)
-comboIndexes = fileReaderLocal.JSONtoMap(mappingsFolder + "handIndexMap")
 
         
 class Tests(unittest.TestCase):
     
+    def __init__(self, methodName: solverPath = "runTest") -> None:
+        super().__init__(methodName)
+        self.sampleConnection = Solver(solverPath)
+        self.samplePath = treePath(sampleCFR)
+        self.sampleWeightsFile = currentdir + sampleFolder + "simple_weights.json"
+    
+        self.sampleConnection.command("load_tree " + self.samplePath)
+        self.sampleConnection.command("load_all_nodes")
+
+        self.nodelocker = TreeOperator(self.sampleConnection)
+        
+        self.comboWeights = fileReader.JSONtoMap(self.sampleWeightsFile)
+        self.comboIndexes = fileReaderLocal.JSONtoMap(mappingsFolder + "handIndexMap")
         
     def testNodelocking(self):
-        comboWeights = fileReader.JSONtoMap(sampleWeightsFile)
+        comboWeights = fileReader.JSONtoMap(self.sampleWeightsFile)
         comboIndexes = fileReaderLocal.JSONtoMap(mappingsFolder + "handIndexMap")
         
-        self.assertEqual(list(comboWeights.keys()), ["king_high", "bdfd_2card"])
+        self.assertEqual(list(comboWeights.keys()), ["ace_high"])
         
-        nodeInfo = nodelocker.get_parent_and_id_of_targetNode(sampleNodeID)
+        nodeInfo = self.nodelocker.get_parent_and_id_of_targetNode(sampleNodeID)
         parentID = nodeInfo[0]
         targetIndex = nodeInfo[1]
         
         self.assertEqual(parentID, "r:0:c")
         
-        oldStrategy = nodelocker.getCurrentStrategyAsList(parentID)
+        oldStrategy = self.nodelocker.getCurrentStrategyAsList(parentID)
         
         for s in oldStrategy:
             self.assertEqual(len(s), totalCombos)
             self.assertEqual(s[0], 0.5)
         
-        nodelocker.set_strategy(sampleWeightsFile, sampleNodeID)
+        self.nodelocker.set_strategy([self.sampleWeightsFile, sampleNodeID])
         
-        finalStrategy = nodelocker.getCurrentStrategyAsList(parentID)
+        finalStrategy = self.nodelocker.getCurrentStrategyAsList(parentID)
         
-        king_high_index = comboIndexes.get("KsQs")
+        king_high_index = comboIndexes.get("AsQs")
         bd_2_index = comboIndexes.get("AhKh")
         
-        king_high_correct_weight = nodelocker.normalizeWeight(comboWeights.get("king_high"))
-        #bd_2_correct_weight =  oldStrategy[targetIndex][bd_2_index] + nodelocker.normalizeWeight(comboWeights.get("bdfd_2card"))
-        bd_2_correct_weight = nodelocker.normalizeWeight(comboWeights.get("bdfd_2card"))
+        ace_high_correct_weight = self.nodelocker.normalizeWeight(comboWeights.get("ace_high"))
+
         
         #printList(finalStrategy)
         
-        self.assertAlmostEqual(finalStrategy[targetIndex][king_high_index], king_high_correct_weight)
-        self.assertAlmostEqual(finalStrategy[1-targetIndex][king_high_index], 1 - king_high_correct_weight)
+        self.assertAlmostEqual(finalStrategy[targetIndex][king_high_index], ace_high_correct_weight)
+        self.assertAlmostEqual(finalStrategy[1-targetIndex][king_high_index], 1 - ace_high_correct_weight)
         self.assertAlmostEqual(finalStrategy[targetIndex][bd_2_index], bd_2_correct_weight)
         self.assertAlmostEqual(finalStrategy[1-targetIndex][bd_2_index], 1 - bd_2_correct_weight)
         

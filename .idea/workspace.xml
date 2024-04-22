@@ -27,27 +27,27 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 8
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 8
+}</component>
   <component name="ProjectId" id="2dGpYGD3mfILdcDOiRfdbMlepSG" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python tests.Python tests for test_comm.Tests.testCommandMap.executor": "Run",
-    "Python tests.Python tests for test_interface.Tests.testGetCommandArgs.executor": "Run",
-    "Python tests.Python tests for test_interface.Tests.testInstantiation.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python tests.Python tests for test_comm.Tests.testCommandMap.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests for test_interface.Tests.testGetCommandArgs.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.Python tests for test_interface.Tests.testInstantiation.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Python tests.Python tests for test_comm.Tests.testCommandMap">
     <configuration name="Python tests for test_comm.Tests.testCommandMap" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
       <module name="PioSolver-plugin" />
@@ -121,6 +121,7 @@
       <option name="presentableId" value="Default" />
       <updated>1709644316811</updated>
       <workItem from="1709644319830" duration="170000" />
+      <workItem from="1712639357692" duration="2000" />
     </task>
     <servers />
   </component>

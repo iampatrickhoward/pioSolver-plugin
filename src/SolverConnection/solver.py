@@ -40,7 +40,7 @@ class Solver(object):
             self.read_until_end()
             raise
 
-    def commands(self, lines):
+    def printCommands(self, lines):
         for line in lines:
             response = self.command(line)
             for res in response:

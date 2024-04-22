@@ -1,5 +1,5 @@
 from SolverConnection.solver import Solver
-from logging_tools import parseStringToList,parseOutputToList, treePath, makeString
+from stringFunc import parseStringToList, treePath, makeString
 from fileIO import fileWriterLocal
 from global_var import solverPath, totalCombos, sampleFolder
 
@@ -93,11 +93,20 @@ def fillHands(cfrFile: str):
     return map
 
 
+def parseStrategyPPToList(strOutput : str) -> list[str]:
+    # delimit pioSolver output using whitespace
+    output : list[str] = strOutput.split("  ")
+    # strip of colons and additional whitespace
+    for i in range(0, len(output)):
+        output[i] = output[i].strip(": ")
+        output[i] = toFloat(output[i])
+    return output
+
 # this takes the output of "show_strategy_pp", parses it into list [name of the hand,  % decision 1, % decision 2]
 # then returns the name of the hand where the weight of decision one is not zero
 def getHandNameIfActive(strInput : str) -> str:
     # delimit input using whitespace
-    input : list[str] = parseOutputToList(strInput)
+    input : list[str] = parseStrategyPPToList(strInput)
     # convert weights into floats
     if len(input) == 3:  
             input[1] = float(input[1])

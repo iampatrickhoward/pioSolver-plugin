@@ -1,10 +1,16 @@
-from comm import Command, PluginCommands
+from menu import Command, PluginCommands
 from inputs import InputType, Input
 from global_var import solverPath
 from tkinter.filedialog import askopenfilename
 from easygui import *
+from filePicker import local_file_picker
+from nicegui import ui
 import os
+import asyncio
 import unittest
+
+
+printConsole = False
 
 # Handles the interface. Graphical / web interfaces can be created by extending this class
 def clearConsole():
@@ -115,17 +121,25 @@ class GUInterface(TextInterface):
     def output(self, message) -> None:
         msgbox(message)
     
-    def openFileDialogue (self) -> str:
-        filename = askopenfilename() # show an "Open" dialog box and return the path to the selected file
-        return filename
     
+
+class PrettyGUInterface (GUInterface):
+    def output(self, message) -> None:
+        ui.label(message)
     
+    async def pick_file() -> None:
+        result = await local_file_picker('~', multiple=True)
+        ui.notify(f'You chose {result}')
+
+    def getFilePath(self) -> str:
+        ui.button('Choose file', on_click=PrettyGUInterface.pick_file, icon='folder')
+        ui.run()
     
 #-----------------------------------------------TESTS----------------------------------------------
 
 class Tests(unittest.TestCase):
 
-    def testInstantiation(self):
+    def instantiation(self):
         # make sure names of commands are properly populated in map
         i = Interface()
         for c in PluginCommands:
@@ -135,12 +149,18 @@ class Tests(unittest.TestCase):
             self.assertIs(callable(n), True)
         
     def testGUI(self): # show an "Open" dialog box and return the path to the selected file
-        i = GUInterface()
-        print(i.getCommand())
-        print(i.getText())
-        print(i.getFilePath())
-        i.output("testing")
+        i = PrettyGUInterface()
+        i.getFilePath()
+    
+    
+#--------------------------------------------------------------------------------------------------
+    
+def main():
+    i = PrettyGUInterface()
+    i.output("Hi")
+    i.getFilePath()
+    
+if __name__ in {"__main__", "__mp_main__"}:
+    #unittest.main() 
+    main()
 
-
-if __name__ == '__main__': 
-    unittest.main() 
