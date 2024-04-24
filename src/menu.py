@@ -27,7 +27,8 @@ class PluginCommands(Enum):
                         BoardFile ("Pick a file with the nodeID and board texture for each .cfr file")],
                        "Allows you to nodelock a folder of files at once.")
                             
-    
+    SETTINGS = Command("change accuracy", [Input(InputType.number, "Enter new accuracy as percent of pot")],
+                       "Allows you to change accuracy of solver (default is .01)")
     END = Command("end", [], "")
     HELP = Command("help", [], "")
 

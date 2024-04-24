@@ -4,7 +4,7 @@ from global_var import solverPath
 from tkinter.filedialog import askopenfilename
 from easygui import *
 from filePicker import local_file_picker
-from nicegui import ui
+from nicegui import ui, Tailwind, tailwind_types
 import os
 import asyncio
 import unittest
@@ -49,9 +49,6 @@ class Interface:
     # output message
     def output(self, message) -> None:
         print(message)
-        
-        
-
 
 class TextInterface(Interface):
     def __init__(self) -> None:
@@ -93,7 +90,6 @@ class TextInterface(Interface):
             userInputs.append(input)
         return userInputs
 
-    
 class GUInterface(TextInterface):
     
     def __init__(self) -> None:
@@ -124,41 +120,57 @@ class GUInterface(TextInterface):
     
 
 class PrettyGUInterface (GUInterface):
-    def output(self, message) -> None:
-        ui.label(message)
+
+    def __init__(self) -> None:
+        super().__init__()
+        dark = ui.dark_mode()
+        switch = ui.switch("dark mode")
+        switch.bind_value_to(dark, 'value')
+        
     
-    async def pick_file() -> None:
+    def output(self, message) -> None:
+        style = Tailwind().align_self("center").margin("mt-20").font_size("3xl")
+        ui.label(message).tailwind(style)
+
+    def outputm(self, message) -> None:
+        style = Tailwind().align_self("center").margin("mt-5").font_size("lg")
+        ui.label(message).tailwind(style)
+        
+    
+    async def showMenu(self) :
+        with ui.dialog() as dialog, ui.row().classes('place-self-center'):
+            for c in PluginCommands:
+                ui.button(c.name, on_click=lambda c=c: dialog.submit(c))
+                
+                
+        choice = await dialog
+        ui.notify(f'You chose {choice.name}')
+        
+
+    async def getFilePath(self) -> str:
         result = await local_file_picker('~', multiple=True)
         ui.notify(f'You chose {result}')
-
-    def getFilePath(self) -> str:
-        ui.button('Choose file', on_click=PrettyGUInterface.pick_file, icon='folder')
-        ui.run()
     
-#-----------------------------------------------TESTS----------------------------------------------
 
-class Tests(unittest.TestCase):
-
-    def instantiation(self):
-        # make sure names of commands are properly populated in map
-        i = Interface()
-        for c in PluginCommands:
-            self.assertIn(c.value.name, i.commandMap)
-        #make sure inputGetterMap returns functions
-        for n in i.inputGetterMap.values():
-            self.assertIs(callable(n), True)
-        
-    def testGUI(self): # show an "Open" dialog box and return the path to the selected file
-        i = PrettyGUInterface()
-        i.getFilePath()
-    
+            
     
 #--------------------------------------------------------------------------------------------------
     
 def main():
+    style = Tailwind('self-center')
     i = PrettyGUInterface()
-    i.output("Hi")
-    i.getFilePath()
+    
+    
+    i.output("Hi!")
+    #i.getFilePath("Connect your piosolver executable.")
+    ui.button("Start", on_click = lambda: i.showMenu())
+    
+    i.outputm("pick a file")
+    style = Tailwind().margin('mt-5').align_self("center")
+    ui.button('Choose file', on_click=lambda: i.getFilePath(), icon="folder").tailwind(style)
+        
+        
+    ui.run()
     
 if __name__ in {"__main__", "__mp_main__"}:
     #unittest.main() 

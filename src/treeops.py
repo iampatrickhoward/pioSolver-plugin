@@ -131,7 +131,7 @@ class TreeOperator():
                 strategy = self.update_weight(strategy, targetIndex, target_draw_cats, draw_category_index.get(category_name), weightMap.get(category_name), addInsteadOfReplace)
 
     # when entering in weights in JSTON, could be decimal or percentage. 
-    # this taccounts for inconsistency in human entry (20% could be typed in as .2 or 20)
+    # this accounts for inconsistency in human entry (20% could be typed in as .2 or 20)
     def normalizeWeight(self, weight_in_JSON: float) -> float:
         if (weight_in_JSON > 1):
                 weight_in_JSON = weight_in_JSON/100
