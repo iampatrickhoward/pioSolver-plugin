@@ -1,5 +1,5 @@
 from SolverConnection.solver import Solver
-from stringFunc import parseStringToList, printList, treePath, makeString, parseNodeIDtoList, makeNodeIDfromList, strategyListToString, makeStrategyFromList
+from stringFunc import parseStringToList, printList, treePath, makeString, parseNodeIDtoList, makeNodeIDfromList, parseStrategyToList, makeStrategyFromList
 from fileIO import fileReaderLocal, fileReader
 from global_var import solverPath, totalCombos, sampleCFR, sampleNodeID, sampleFolder, mappingsFolder, currentdir, hand_category_index, draw_category_index, exception_categories
 import unittest
@@ -34,7 +34,7 @@ class TreeOperator():
         self.alter_strategy(strategy, weightMap, self.nodeIndex, self.nodeID)
         
         # set the new target strategy in the original pio output 
-        strategy = strategyListToString(strategy)
+        strategy = parseStrategyToList(strategy)
         
         self.connection.command("set_strategy " + self.parent + " " + strategy)
         

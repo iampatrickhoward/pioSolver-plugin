@@ -3,7 +3,12 @@ from stringFunc import parseEV, toFloat, parseTreeInfoToMap, parseSettingsToMap
 import unittest
 from global_var import solverPath
 from SolverConnection.solver import Solver
-from treeops import normalizeWeight
+
+
+def normalizeWeight(n: float) -> float:
+        if (n > 1):
+               n = n/100
+        return n
 # functions that transmit commands to the solver to get correct output
 class SolverCommmand():
     def __init__(self, connection) -> None:
