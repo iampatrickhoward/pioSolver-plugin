@@ -3,6 +3,7 @@ import json
 from global_var import currentdir
 import unittest 
 from enum import Enum
+from __future__ import annotations
 
 
 class IO(Enum):

@@ -1,5 +1,6 @@
 from enum import Enum
 from inputs import Input, FileInput, FolderOf, WeightsFile, BoardFile, Extension, InputType
+from __future__ import annotations
 
 import unittest
 
@@ -29,6 +30,7 @@ class PluginCommands(Enum):
                             
     SETTINGS = Command("change accuracy", [Input(InputType.number, "Enter new accuracy as percent of pot")],
                        "Allows you to change accuracy of solver (default is .01)")
+    
     END = Command("end", [], "")
     HELP = Command("help", [], "")
 

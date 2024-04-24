@@ -2,6 +2,7 @@ import platform
 from pathlib import Path
 from typing import Optional
 import win32api
+from __future__ import annotations
 
 from nicegui import events, ui
 

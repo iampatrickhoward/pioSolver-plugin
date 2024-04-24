@@ -4,6 +4,8 @@ from errorMessages import Errors
 from global_var import currentdir
 import unittest
 from datetime import datetime
+from __future__ import annotations
+
 
 # this file has scripts that parse dat from one format to another
 

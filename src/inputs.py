@@ -5,6 +5,8 @@ from stringFunc import parseNodeIDtoList, toFloat
 from errorMessages import Errors
 import os
 import unittest
+from __future__ import annotations
+
 
 class Extension (Enum):
     cfr = ".cfr"

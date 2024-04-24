@@ -4,6 +4,7 @@ from SolverConnection.solver import Solver
 from interface import TextInterface, GUInterface
 from program import Program
 from global_var import solverPath
+from __future__ import annotations
 
 def main():
     interface = GUInterface()

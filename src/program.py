@@ -11,6 +11,8 @@ import unittest
 from global_var import solverPath
 import asyncio
 import win32api
+from __future__ import annotations
+
 
 consoleLog = True
 

@@ -8,7 +8,7 @@ from nicegui import ui, Tailwind, tailwind_types
 import os
 import asyncio
 import unittest
-
+from __future__ import annotations
 
 printConsole = False
 
@@ -118,61 +118,3 @@ class GUInterface(TextInterface):
         msgbox(message)
     
     
-
-class PrettyGUInterface (GUInterface):
-
-    def __init__(self) -> None:
-        super().__init__()
-        dark = ui.dark_mode()
-        switch = ui.switch("dark mode")
-        switch.bind_value_to(dark, 'value')
-        
-    
-    def output(self, message) -> None:
-        style = Tailwind().align_self("center").margin("mt-20").font_size("3xl")
-        ui.label(message).tailwind(style)
-
-    def outputm(self, message) -> None:
-        style = Tailwind().align_self("center").margin("mt-5").font_size("lg")
-        ui.label(message).tailwind(style)
-        
-    
-    async def showMenu(self) :
-        with ui.dialog() as dialog, ui.row().classes('place-self-center'):
-            for c in PluginCommands:
-                ui.button(c.name, on_click=lambda c=c: dialog.submit(c))
-                
-                
-        choice = await dialog
-        ui.notify(f'You chose {choice.name}')
-        
-
-    async def getFilePath(self) -> str:
-        result = await local_file_picker('~', multiple=True)
-        ui.notify(f'You chose {result}')
-    
-
-            
-    
-#--------------------------------------------------------------------------------------------------
-    
-def main():
-    style = Tailwind('self-center')
-    i = PrettyGUInterface()
-    
-    
-    i.output("Hi!")
-    #i.getFilePath("Connect your piosolver executable.")
-    ui.button("Start", on_click = lambda: i.showMenu())
-    
-    i.outputm("pick a file")
-    style = Tailwind().margin('mt-5').align_self("center")
-    ui.button('Choose file', on_click=lambda: i.getFilePath(), icon="folder").tailwind(style)
-        
-        
-    ui.run()
-    
-if __name__ in {"__main__", "__mp_main__"}:
-    #unittest.main() 
-    main()
-

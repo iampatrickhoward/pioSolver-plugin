@@ -8,6 +8,7 @@ from filePicker import local_file_picker
 from nicegui import ui, Tailwind, tailwind_types
 import os
 import asyncio
+from __future__ import annotations
 import unittest
 
 
@@ -48,6 +49,8 @@ async def getFilePath() -> str:
 def main():
     
     style = Tailwind().margin('mt-5').align_self("center")
+    ui.label("Hi!").tailwind(style)
+    ui.label("Pick a piosolver executable to start")
     button = ui.button("Start", on_click = lambda: connectToSolver(button))
     button.tailwind(style)
 
