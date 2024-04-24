@@ -1,14 +1,12 @@
+from __future__ import annotations
 from menu import Command, PluginCommands
 from inputs import InputType, Input
 from global_var import solverPath
 from tkinter.filedialog import askopenfilename
 from easygui import *
-from filePicker import local_file_picker
-from nicegui import ui, Tailwind, tailwind_types
 import os
 import asyncio
 import unittest
-from __future__ import annotations
 
 printConsole = False
 

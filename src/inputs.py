@@ -1,3 +1,4 @@
+from __future__ import annotations
 from enum import Enum
 from global_var import hand_category_index, draw_category_index, exception_categories, sampleFolder
 from fileIO import fileReader, fileReaderLocal
@@ -5,7 +6,7 @@ from stringFunc import parseNodeIDtoList, toFloat
 from errorMessages import Errors
 import os
 import unittest
-from __future__ import annotations
+
 
 
 class Extension (Enum):

@@ -1,6 +1,6 @@
+from __future__ import annotations
 from enum import Enum
 from inputs import Input, FileInput, FolderOf, WeightsFile, BoardFile, Extension, InputType
-from __future__ import annotations
 
 import unittest
 

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from menu import PluginCommands, Command
 from interface import Interface, TextInterface, GUInterface
 from treeops import TreeOperator
@@ -11,7 +12,6 @@ import unittest
 from global_var import solverPath
 import asyncio
 import win32api
-from __future__ import annotations
 
 
 consoleLog = True

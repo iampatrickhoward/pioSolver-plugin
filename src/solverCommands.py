@@ -1,9 +1,9 @@
 
+from __future__ import annotations
 from stringFunc import parseEV, toFloat, parseTreeInfoToMap, parseSettingsToMap
 import unittest
 from global_var import solverPath
 from SolverConnection.solver import Solver
-from __future__ import annotations
 
 
 def normalizeWeight(n: float) -> float:

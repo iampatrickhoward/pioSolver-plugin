@@ -1,6 +1,7 @@
+from __future__ import annotations
 from nicegui import ui, events
 import os
-from __future__ import annotations
+
 
 ui.label("Upload File")
 ui.label('(Drag and drop into the box below, or use the "+" button to select a file)')

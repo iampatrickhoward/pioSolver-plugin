@@ -1,9 +1,9 @@
+from __future__ import annotations
 from SolverConnection.solver import Solver
 from stringFunc import parseStringToList, printList, treePath, makeString, parseNodeIDtoList, makeNodeIDfromList, parseStrategyToList, makeStrategyFromList
 from fileIO import fileReaderLocal, fileReader
 from global_var import solverPath, totalCombos, sampleCFR, sampleNodeID, sampleFolder, mappingsFolder, currentdir, hand_category_index, draw_category_index, exception_categories
 import unittest
-from __future__ import annotations
 
 
 printConsole = False
