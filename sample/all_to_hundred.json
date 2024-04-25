@@ -1,0 +1,23 @@
+
+    {
+        "nothing": 100,
+        "king_high": 100,
+        "ace_high": 100,
+        "low_pair": 100,
+        "3rd-pair": 100,
+        "2nd-pair": 100,
+        "underpair": 100,
+        "top_pair": 100,
+        "top_pair_tp": 100,
+        "overpair": 100,
+        "two_pair": 100,
+        "trips": 100,
+        "set": 100,
+        "straight": 100,
+        "flush": 100,
+        "fullhouse": 100,
+        "top_fullhouse": 100,
+        "quads": 100,
+        "straight_flush": 100
+    }
+

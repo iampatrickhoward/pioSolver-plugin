@@ -1,7 +1,7 @@
 GenericRangeExplorer*
 
 #Ignore sample folder
-sample 
+sample/cfr
 sample_patrick
 test.py
 ## Ignore Visual Studio temporary files, build results, and
