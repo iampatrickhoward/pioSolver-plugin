@@ -134,7 +134,8 @@ class Program:
                 
                 # append EVs to line
                 evs = self.tryFunction(pio.getEV, [])
-                thisLine.extend(evs)
+                if evs:
+                    thisLine.extend(evs)
                 
                 toCSV.append(thisLine)
                 
@@ -209,15 +210,15 @@ class Tests(unittest.TestCase):
         self.all_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\all_to_hundred.json")
         self.b = BoardFile("test").parseInput(self.sampleFolder + r"\board_simple.json")
         
-    def CommandDispatcher(self):
+    def testCommandDispatcher(self):
         self.assertTrue(callable(self.p.commandDispatcher[PluginCommands.RUN]))
         
     def testSolve(self):
-        self.p.get_results([[self.sampleFolder, self.oneFile],"testResults" + timestamp(),self.b])
+        self.p.get_results([[self.sampleFolder + "\\cfr", self.oneFile],"testResults" + timestamp(),self.b])
         self.p.end([])
     
-    def Nodelock(self):
-        self.p.nodelock_and_save([[self.sampleFolder, self.oneFile], self.all_weights, self.b])
+    def testNordelock(self):
+        self.p.nodelock_and_save([[self.sampleFolder + "\\cfr", self.oneFile], self.all_weights, self.b])
         self.p.end([])
         
 if __name__ == '__main__': 

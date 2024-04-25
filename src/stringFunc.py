@@ -19,14 +19,6 @@ def toFloat(string :str):
     except ValueError:
         return string
 
-def getDirectoryofFile(fName : str) -> str:
-    path : list[str] = fName.split("\\")
-    path = path[:-1]
-    dir =  ""
-    for p in path:
-        dir = dir + p + "\\"
-    return dir
-
 def parseStringToList(strOutput : str) -> list[str]:
     # delimit pioSolver output using whitespace
     output : list[str] = strOutput.split(" ")
@@ -36,22 +28,9 @@ def parseStringToList(strOutput : str) -> list[str]:
         output[i] = toFloat(output[i])
     return output
 
-def printList (lst):
-    print("------------------------------")
-    for i in lst:
-        print(i)
-    print("------------------------------")
-
-# encloses a string in quotes. this is how file names need to be give to Pio
-def inQuotes (string : str) -> str:
-    return "\"" + string + "\""
-
-def treePath (fName: str) -> str:
-    return inQuotes(currentdir + fName + ".cfr")
 
 def removeExtension(file: str) -> str:
     return file.split(".")[0]
-
 
 #---------------------------------------------pio outputs to data---------------------------------------#
 
@@ -78,40 +57,14 @@ def parseStrategyToList (strategy : list[str]) -> list[list[float]] :
         strategy[i] = parseStringToList(strategy[i])
     return strategy
 
-#Example Output
-#Type#NoLimit
-#Range0#AA,KK,JJ,TT,88,77,66,55,KQo,QJo,T9o,98o,87o,76s,65s,54s,43s,32s
-#Range1#AA,KK,44,33,22,AKo,KQo,QTo,T8o,87o,76o,65o,54o,32s
-#Rake.Enabled#True
-#Rake.Fraction#0.05
-#Rake.Cap#2
-#Board#Kd Tc 9h
-#Pot#55
-#EffectiveStacks#975
-#AllinThreshold#67
-#AddAllinOnlyIfLessThanThisTimesThePot#300
-#UnifiedBetAfterRaise#70
-#UseUnifiedRaiseAfterRaise#True
-#UnifiedRaiseAfterRaise#45
-#FlopConfig.RaiseSize#60
-#TurnConfig.BetSize#70
-#TurnConfig.RaiseSize#60
-#RiverConfig.BetSize#70
-#RiverConfig.RaiseSize#60
-#RiverConfig.AddAllin#True
-#FlopConfigIP.BetSize#30
-#FlopConfigIP.RaiseSize#60
-#TurnConfigIP.BetSize#70, 150
-#TurnConfigIP.RaiseSize#60
-#RiverConfigIP.BetSize#70
-#RiverConfigIP.RaiseSize#60
-#RiverConfigIP.AddAllin#True
 
 def parseTreeInfoToMap (info : list[str]) -> dict[str, any] :
     map = {}
     for i in info:
+        # #FlopConfig.RaiseSize#60
         pair = i.split("#")
-        map[pair[0]] = toFloat(pair[1])
+         # ['', 'FlopConfig.RaiseSize', '60']
+        map[pair[1]] = toFloat(pair[2])
     return map
 
 '''
@@ -131,7 +84,7 @@ ignore mememory check: 0
 def parseSettingsToMap(settings : list[str]) -> dict[str, any]:
     map = {}
     for s in settings:
-        pair = i.split(":")
+        pair = s.split(":")
         map[pair[0]] = toFloat(pair[1])
     return map
 #--------------------------------------------data to pio input---------------------------------------#
@@ -158,10 +111,6 @@ def makeStrategyFromList(strategy : list[list[float]]) -> list[str] :
 
 
 class Tests(unittest.TestCase):
-    
-    def testInQuotes(self):
-        self.assertEqual(inQuotes("hi"), "\"hi\"")
-        
     def testStringToList(self):
         self.assertEqual(toFloat("0.5"), 0.5)
         self.assertEqual(toFloat("05"), 5.0)

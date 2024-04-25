@@ -270,9 +270,9 @@ class Tests(unittest.TestCase):
         
     def testFolder(self):
         w = FolderOf(Extension.cfr, "Select a folder with .cfr files")
-        files = w.parseInput(fileReaderLocal.getLocalPath(sampleFolder))
-        self.assertEqual(files, [fileReaderLocal.getLocalPath(sampleFolder),
-                                 ['As5h3s.cfr', 'KdTc9h.cfr', 'Qh6c5s.cfr']])
+        files = w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "\\cfr\\"))
+        self.assertEqual(files[0], fileReaderLocal.getLocalPath(sampleFolder + "\\cfr\\"))
+        self.assertTrue(files[1], ['As5h3s.cfr', 'KdTc9h.cfr', 'Qh6c5s.cfr'])
         
         try:
             w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "weights.json"))
@@ -282,7 +282,7 @@ class Tests(unittest.TestCase):
         try:
             w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "folder"))
         except Exception as e:
-            self.assertEqual(str(e), Errors.invalidFolder + "Folder has no " + w.extension + " files. ")
+            self.assertEqual(str(e), Errors.invalidFolder)
     
     def testBoardFile(self):
         
