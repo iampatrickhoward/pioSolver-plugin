@@ -1,7 +1,7 @@
 from __future__ import annotations
 from enum import Enum
-from global_var import hand_category_index, draw_category_index, exception_categories, sampleFolder
-from fileIO import fileReader, fileReaderLocal
+from global_var import hand_category_index, draw_category_index, exception_categories, currentdir
+from fileIO import JSONtoMap
 from stringFunc import parseNodeIDtoList, toFloat
 from errorMessages import Errors
 import os
@@ -67,7 +67,7 @@ class FolderOf (FileInput) :
         allFilesInside : list [str] = []
         try: 
             allFilesInside = os.listdir(input)
-        except: 
+        except:
             raise Exception(Errors.invalidFolder)
         neededFiles = []
         # return the files inside the folder which match the needed extension
@@ -86,14 +86,14 @@ class WeightsFile (FileInput):
     # output: a map of valid category names and their corresponding weights
     def parseInput(self, input : str) -> dict[str, int] :
         input = super().parseInput(input)
-        weightMap : dict = fileReader.JSONtoMap(input)
+        weightMap : dict = JSONtoMap(input)
         
         for category_name in weightMap:
             validName : bool = category_name in hand_category_index or category_name in draw_category_index
             if not validName:
                 raise Exception(Errors.invalidCategory(category_name))
             weight = toFloat(str(weightMap.get(category_name)))
-            if type(weight) is str:
+            if type(weight) is str: 
                 raise Exception(Errors.numericWeights)
             
             if weight < 0 and category_name not in exception_categories:
@@ -129,7 +129,8 @@ class BoardFile(FileInput):
     def parseInput(self, input : str) -> dict[str, str] :
         input = super().parseInput(input)
         
-        board = fileReader.JSONtoMap(input)
+        board = JSONtoMap(input)
+        
         nodeID = board.get("all")
         if nodeID is None:
             raise Exception (Errors.noDecisionLineError)
@@ -266,27 +267,35 @@ class Tests(unittest.TestCase):
     
     def testWeightFile(self):
         w = WeightsFile("Enter a weights file.")
-        w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "weights.json"))
+        o = w.parseInput(currentdir + r"sample\simple_weights.json")
+        self.assertEqual(o["ace_high"], 20)
+        self.assertEqual(o["bdfd_2card"], 20)
         
     def testFolder(self):
         w = FolderOf(Extension.cfr, "Select a folder with .cfr files")
-        files = w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "\\cfr\\"))
-        self.assertEqual(files[0], fileReaderLocal.getLocalPath(sampleFolder + "\\cfr\\"))
-        self.assertTrue(files[1], ['As5h3s.cfr', 'KdTc9h.cfr', 'Qh6c5s.cfr'])
+        files = w.parseInput(currentdir + r"sample\cfr")
+        self.assertEqual(files[0], currentdir + r"sample\cfr")
+        self.assertTrue(files[1], ['As5h3s.cfr', 'KdTc9h.cfr', 'Qh6c5s.cfr', 'As5h3s_small.cfr', 'KdTc9h_small.cfr', 'Qh6c5s_small.cfr'])
         
         try:
-            w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "weights.json"))
+            w.parseInput(currentdir + r"sample\weights.json")
         except Exception as e:
             self.assertEqual(str(e), Errors.invalidFolder)
             
         try:
-            w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "folder"))
+            w.parseInput(currentdir + r"sample\notAFolder")
         except Exception as e:
             self.assertEqual(str(e), Errors.invalidFolder)
+            
+    def testGetSpecificNodeIDs(self):
+        o = BoardFile.getSpecificNodeIDs("r:0:c:c:turn:b10:b:river",
+                                         {"cfr1" : ["Ah", "15" , "Ts"],
+                                          "cfr2" : ["Ah", "10" , "Kh"]},
+                                         )
+        self.assertEqual(o, {"cfr1" : "r:0:c:c:Ah:b10:b15:Ts",
+                             "cfr2" : "r:0:c:c:Ah:b10:b10:Kh"})
     
-    def testBoardFile(self):
-        
-        
+    def testBoardFileExceptions(self):
         w = BoardFile("Enter a board file.")
         self.assertEqual(BoardFile.decisionDict, {"r:0" : Decisions.ROOT, 
                                                   "c" : Decisions.CHECK,
@@ -295,29 +304,18 @@ class Tests(unittest.TestCase):
                                                   "turn" : Decisions.TURN,
                                                   "river" : Decisions.RIVER})
         try:
-            w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "board_bad.json"))
+            w.parseInput(currentdir + r"sample\board_bad.json")
         except Exception as e:
             self.assertEqual(str(e),Errors.noRootNode)
 
-        o = w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "board_turn.json"))
-        self.assertEqual(o, {"As5h3s" : "r:0:c:c:Ah:c",
-                             "KdTc9h" : "r:0:c:c:Ts:c",
-                             "Qh6c5s" : "r:0:c:c:Ts:c"})
+    def testBoardFile(self):
+        b = BoardFile("boardfile")
+        o = b.parseInput(currentdir + r"sample\board_turn.json")
+        self.assertEqual(o, {"As5h3s" : "r:0:c:b16:c:Ah:c:c","KdTc9h" : "r:0:c:b16:c:Ts:c:c","Qh6c5s" : "r:0:c:b16:c:Ts:c:c"})
         
-        o = w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "board_simple.json"))
-        self.assertEqual(o, "r:0:c:c:b10")
+        o = b.parseInput(currentdir + r"sample\board_simple.json")
+        self.assertEqual(o, "r:0:c:b16")
         
-        try:
-            o = w.parseInput(fileReaderLocal.getLocalPath(sampleFolder + "board_bad.json"))
-        except Exception as e:
-            self.assertEqual(str(e), Errors.noRootNode)
-        
-        o = BoardFile.getSpecificNodeIDs("r:0:c:c:turn:b10:b:river",
-                                         {"cfr1" : ["Ah", "15" , "Ts"],
-                                          "cfr2" : ["Ah", "10" , "Kh"]},
-                                         )
-        self.assertEqual(o, {"cfr1" : "r:0:c:c:Ah:b10:b15:Ts",
-                             "cfr2" : "r:0:c:c:Ah:b10:b10:Kh"})
         
 if __name__ == '__main__': 
     unittest.main() 

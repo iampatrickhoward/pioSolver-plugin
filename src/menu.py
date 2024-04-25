@@ -19,7 +19,8 @@ class Command:
 
 class PluginCommands(Enum):
     RUN = Command("run", 
-                  [FileInput(Extension.cfr, "Pick a .cfr file to run")],
+                  [FolderOf(Extension.cfr, "Pick a folder of .cfr files to run"),
+                   BoardFile("Pick a file with the nodeID and board texture for each .cfr file")],
                   "")
     
     NODELOCK = Command("nodelock",
@@ -28,8 +29,8 @@ class PluginCommands(Enum):
                         BoardFile ("Pick a file with the nodeID and board texture for each .cfr file")],
                        "Allows you to nodelock a folder of files at once.")
                             
-    SETTINGS = Command("change accuracy", [Input(InputType.number, "Enter new accuracy as percent of pot")],
-                       "Allows you to change accuracy of solver (default is .01)")
+    SET_ACCURACY = Command("change accuracy", [Input(InputType.number, "Enter new accuracy as fraction of pot")],
+                       "Allows you to change accuracy of solver (default is .002)")
     
     END = Command("end", [], "")
     HELP = Command("help", [], "")

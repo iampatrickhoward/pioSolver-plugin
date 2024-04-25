@@ -22,6 +22,8 @@ class Solver(object):
         self.write_line("set_end_string END")
         self.wait_line("END")
         self._hand_order = None
+        
+        self.accuracy = 0.002
 
     def exit(self):
         self.process.kill()

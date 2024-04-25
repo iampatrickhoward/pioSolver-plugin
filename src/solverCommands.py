@@ -45,7 +45,7 @@ class SolverCommmand():
     def load_tree(self, cfrFilePath) :
         self.run_until("load_tree \"" + cfrFilePath + "\"", "load_tree ok!")
         self.run_until("load_all_nodes", "load_all_nodes ok!")
-        self.setAccuracy([accuracy])
+        self.setAccuracy([self.connection.accuracy])
 
     def getTreeInfo(self):
         self.tryPio(self.connection.command, [""])

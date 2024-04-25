@@ -1,8 +1,5 @@
 from __future__ import annotations
-from SolverConnection.solver import Solver
-import re
 from errorMessages import Errors
-from global_var import currentdir
 import unittest
 from datetime import datetime
 

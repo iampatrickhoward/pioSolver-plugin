@@ -1,12 +1,8 @@
 from __future__ import annotations
 from menu import Command, PluginCommands
 from inputs import InputType, Input
-from global_var import solverPath
-from tkinter.filedialog import askopenfilename
-from easygui import *
+from easygui import enterbox, diropenbox, fileopenbox, choicebox, msgbox
 import os
-import asyncio
-import unittest
 
 printConsole = False
 
@@ -25,13 +21,6 @@ class Interface:
             InputType.number: self.getText,
             InputType.directory: self.getFolder
         }
-
-    # displays possible commands
-    def displayOptions(self):
-        print("..................")
-        for c in PluginCommands:
-            print(c.name)
-        print("..................")
 
     # gets a text input from user
     def getText(self) -> str:
@@ -108,9 +97,6 @@ class GUInterface(TextInterface):
 
     def getFolder(self) -> str:
         return diropenbox()
-
-    def displayOptions(self):
-        self.output("")
     
     def output(self, message) -> None:
         msgbox(message)

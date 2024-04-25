@@ -1,9 +1,6 @@
 from __future__ import annotations
-from SolverConnection.solver import Solver
-from stringFunc import parseStringToList, printList, treePath, makeString, parseNodeIDtoList, makeNodeIDfromList, parseStrategyToList, makeStrategyFromList
-from fileIO import fileReaderLocal, fileReader
-from global_var import solverPath, totalCombos, sampleCFR, sampleNodeID, sampleFolder, mappingsFolder, currentdir, hand_category_index, draw_category_index, exception_categories
-import unittest
+from stringFunc import parseStringToList, parseNodeIDtoList, makeNodeIDfromList, parseStrategyToList, makeStrategyFromList
+from global_var import totalCombos, hand_category_index, draw_category_index, exception_categories
 
 
 printConsole = False
@@ -31,12 +28,14 @@ class TreeOperator():
         # the strategy map of the target node and all its sister nodeq
         # format: a list of a list of 1326 floats (one per combo)
         strategy = self.getCurrentStrategyAsList(self.parent)
-
+        
+        if printConsole:
+            print(strategy)
         
         self.alter_strategy(strategy, weightMap, self.nodeIndex, self.nodeID)
         
         # set the new target strategy in the original pio output 
-        strategy = parseStrategyToList(strategy)
+        strategy = makeStrategyFromList(strategy)
         
         self.connection.command("set_strategy " + self.parent + " " + strategy)
         
@@ -47,7 +46,7 @@ class TreeOperator():
     def getCurrentStrategyAsList(self, nodeID: str) -> list[list[float]] :
         strategy = self.connection.command("show_strategy " + nodeID)
         # turn each individual strategy (string) in the list into a list of numbers
-        return makeStrategyFromList(strategy) 
+        return parseStrategyToList(strategy) 
 
 
     # in order to nodelock a particular decision, we need to reference it by its index number as the child of the parent

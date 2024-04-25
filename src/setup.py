@@ -15,13 +15,8 @@ setup(
     author_email = "venn.divya@gmail.com",
     description = ("A set of tools to build "),
     license = "BSD",
-    keywords = "example documentation tutorial",
+    keywords = "poker simulation runner",
     url = "http://packages.python.org/an_example_pypi_project",
     packages=['an_example_pypi_project', 'tests'],
     long_description=read('README'),
-    classifiers=[
-        "Development Status :: 3 - Alpha",
-        "Topic :: Utilities",
-        "License :: OSI Approved :: BSD License",
-    ],
 )

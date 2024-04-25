@@ -18,6 +18,7 @@ class Errors():
     @staticmethod
     def wrongFileType (extension : str):
         return "This file does not have type " + extension + ". "
+    
     invalidFile = "Invalid file. "
     invalidFolder = "Please select a valid folder. "
 

@@ -40,9 +40,7 @@ async def getFilePath() -> str:
   result = await local_file_picker('~', multiple=True)
   ui.notify(f'You chose {result}')
     
-
             
-    
 #--------------------------------------------------------------------------------------------------
     
 def main():

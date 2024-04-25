@@ -1,17 +1,15 @@
 from __future__ import annotations
 from menu import PluginCommands, Command
-from interface import Interface, TextInterface, GUInterface
+from interface import Interface, GUInterface
 from treeops import TreeOperator
 from inputs import WeightsFile, BoardFile
-from stringFunc import removeExtension, timestamp
+from stringFunc import removeExtension, timestamp, toFloat
 from SolverConnection.solver import Solver
 from solverCommands import SolverCommmand
 from typing import Callable
-from fileIO import CSVio, IO
+from fileIO import addRowstoCSV
 import unittest
-from global_var import solverPath
-import asyncio
-import win32api
+from global_var import solverPath, currentdir
 
 
 consoleLog = True
@@ -26,19 +24,24 @@ class Program:
         self.commandDispatcher : dict[Command, Callable[[list[str]], None]] = { 
             PluginCommands.RUN: self.get_results,
             PluginCommands.NODELOCK: self.nodelock_and_save,
+            PluginCommands.SET_ACCURACY: self.update_accuracy,
             PluginCommands.END: self.end,
             PluginCommands.HELP: self.help}
          
     def start(self) -> None :
         self.commandRun()    
         
-    
+    # new accuracy of solverq
+    def update_accuracy(self, args : list[str]):
+        self.connection.accuracy = toFloat(args[0])
+        
     def commandRun(self):
         inputtedCommand = self.interface.getCommand()
         inputtedArgs = self.interface.getCommandArgs(inputtedCommand.value)
         if inputtedArgs is None:
             return self.commandDispatcher[PluginCommands.END]([])
         # runs the function in the program class associated with that command
+        print(inputtedArgs)
         self.commandDispatcher[inputtedCommand](inputtedArgs)
         if (inputtedCommand != PluginCommands.END):
             self.commandRun()
@@ -49,7 +52,7 @@ class Program:
             if args is None or len(args) == 0:
                 return func()
             #command meant to take a single input
-            elif len(args) == 1:
+            elif type(args) != list or len(args) == 1:
                 return func(args[0])
             #command meant to take a list of
             else:
@@ -79,12 +82,11 @@ class Program:
     
     # args[0][0] : the folder path
     # args[0][1] : list of .cfr files
-    # args[1] : the name you want for the result file
-    # args[2] : either a string with the nodeID or a map with .cfr file names -> file-specific nodeIDs
+    # args[1] : either a string with the nodeID or a map with .cfr file names -> file-specific nodeIDs
     def get_results(self, args: list[str]):
         folder, cfrFiles = args[0]
-        path = folder + "\\results\\" + args[1] + ".csv"
-        nodeBook = args[2]
+        path = folder + "results" + timestamp() + ".csv"
+        nodeBook = args[1]
         pio = SolverCommmand(self.connection)
         
         # arrays that will be written to CSV file
@@ -113,7 +115,9 @@ class Program:
                 for s in treeOp.sisters:
                     if needsTitles is True:
                         title.append(s)
-                    thisLine.append(str(pio.getActionFrequency([s])))
+                    freq = self.tryFunction(pio.getActionFrequency, [[s]])
+                    if freq:
+                        thisLine.append(str(freq))
                 
                 #append action frequencies after this node
                 if needsTitles is True:
@@ -125,23 +129,27 @@ class Program:
                 for c in children:
                     if needsTitles is True:
                         title.append(c)
-                    thisLine.append(str(pio.getActionFrequency([c])))
+                    freq = self.tryFunction(pio.getActionFrequency, [[c]])
+                    if freq:
+                        thisLine.append(str(freq))
                 
                 # for whatever reason, if you cannot get the line frequencies after running the solver, 
                 if needsTitles is True:
                         title.extend(["", "EV OOP", "EV IP"])
                 thisLine.append("   ")
                 
+                self.interface.output("Solving " + cfr + "to an accuracy of " + str(self.connection.accuracy) + ".")
                 # append EVs to line
                 evs = self.tryFunction(pio.getEV, [])
                 if evs:
+                    self.interface.output("Solved " + cfr + ".")
                     thisLine.extend(evs)
                 
                 toCSV.append(thisLine)
                 
             needsTitles = False
             
-        CSVio.addRows(path, toCSV)
+        addRowstoCSV(path, toCSV)
         
     #args[0] : file Name
     #args[1] : either a string with the nodeID or a map with .cfr file names -> file-specific nodeIDs
@@ -175,7 +183,7 @@ class Program:
     
         
         for cfr in cfrFiles:
-            print(pio.load_tree(folder + "\\" + cfr))
+            pio.load_tree(folder + "\\" + cfr)
             nodeID = self.tryFunction(self.get_file_nodeID, [cfr, nodeBook])
             if nodeID:
                 treeOp = TreeOperator(self.connection, nodeID)
@@ -203,8 +211,10 @@ class Tests(unittest.TestCase):
         super().__init__(methodName)
         self.oneFile = ["KdTc9h_small.cfr"]
         self.allFiles = ["KdTc9h_small.cfr", "Qh6c5s_small.cfr", "As5h3s_small.cfr"]
-        self.sampleFolder = r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample"
+        
+        self.sampleFolder = currentdir + "\sample"
         self.p = Program(Solver(solverPath), GUInterface())
+        
         self.simple_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\simple_weights.json")
         self.exception_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\exception_weights.json")
         self.all_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\all_to_hundred.json")
@@ -217,7 +227,7 @@ class Tests(unittest.TestCase):
         self.p.get_results([[self.sampleFolder + "\\cfr", self.oneFile],"testResults" + timestamp(),self.b])
         self.p.end([])
     
-    def testNordelock(self):
+    def testNodelock(self):
         self.p.nodelock_and_save([[self.sampleFolder + "\\cfr", self.oneFile], self.all_weights, self.b])
         self.p.end([])
         
