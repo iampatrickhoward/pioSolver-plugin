@@ -2,7 +2,7 @@
 from __future__ import annotations
 from stringFunc import parseEV, toFloat, parseTreeInfoToMap, parseSettingsToMap
 import unittest
-from global_var import solverPath
+from global_var import solverPath, accuracy
 from SolverConnection.solver import Solver
 
 
@@ -35,7 +35,7 @@ class SolverCommmand():
     def load_tree(self, cfrFilePath) :
         self.tryPio(self.connection.command, ["load_tree \"" + cfrFilePath + "\""])
         self.tryPio(self.connection.command, ["load_all_nodes"])
-        self.setAccuracy([.01])
+        self.setAccuracy([accuracy])
 
 
     def getTreeInfo(self):
@@ -96,7 +96,7 @@ class Tests(unittest.TestCase):
             self.pio.load_tree(r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\\KdTc9h_small.cfr")
             info = parseTreeInfoToMap(self.connection.command("show_tree_info"))
             self.assertEqual(info["Pot"], 55)
-            self.pio.setAccuracy([.01]) 
+            self.pio.setAccuracy([.002]) 
             settings = parseSettingsToMap(self.connection.command("show_settings"))
             self.assertEqual(settings["accuracy"], .55)
             

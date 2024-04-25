@@ -3,6 +3,7 @@ import sys
 import os
 from SolverConnection.solver import Solver
 from interface import TextInterface, GUInterface
+from global_var import solverPath
 from program import Program
 
 
@@ -11,8 +12,8 @@ def main():
     # starts the solver process using the provided .exe path
     # solverPath = interface.getFilePath()
     
-    interface.output("Link your file executable")
-    solverPath = interface.getFilePath()
+    #interface.output("Link your file executable")
+    #solverPath = interface.getFilePath()
     
     if(solverPath):
         connection = Solver(solverPath)

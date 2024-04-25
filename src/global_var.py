@@ -1,7 +1,7 @@
 import os
 
 solverPath = "C:\PioSOLVER\PioSOLVER3-pro.exe"
-
+accuracy = .002 # as a fraction of pot
 
 
 currentdir = os.getcwd() + "\\"
