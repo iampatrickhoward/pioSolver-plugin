@@ -1,7 +1,7 @@
 from __future__ import annotations
 from menu import PluginCommands, Command
 from interface import Interface, GUInterface
-from treeops import TreeOperator
+from treeops import TreeOperator, nodeFamily
 from inputs import WeightsFile, BoardFile
 from stringFunc import removeExtension, timestamp, toFloat
 from SolverConnection.solver import Solver
@@ -25,8 +25,7 @@ class Program:
             PluginCommands.RUN: self.get_results,
             PluginCommands.NODELOCK: self.nodelock_and_save,
             PluginCommands.SET_ACCURACY: self.update_accuracy,
-            PluginCommands.END: self.end,
-            PluginCommands.HELP: self.help}
+            PluginCommands.END: self.end}
          
     def start(self) -> None :
         self.commandRun()    
@@ -61,17 +60,17 @@ class Program:
             self.interface.output(str(e))
             return None
         
-    # arg[0] = node
+    # arg[0] = nodeID
     # returns the action frequencies for the sister and children nodes of the target node
     def getAllFrequencies(self, args: list) :
-        nodeID = args[0]
-        treeOp = TreeOperator(self.connection, nodeID)
+        treeOp = TreeOperator(self.connection)
+        family = treeOp.get_family(args[0])
         sisterFrequencies = []
         childFrequencies = []
-        for s in treeOp.sisters:
+        for s in family.sisters:
             #sisterFrequencies[s] = self.getActionFrequency(s)
             sisterFrequencies.append(self.getActionFrequency(s))
-        for c in childFrequencies:
+        for c in family.children:
             #childFrequencies[c] = self.getActionFrequency(c)
             childFrequencies.append(self.getActionFrequency(c))
     
@@ -105,14 +104,14 @@ class Program:
             if nodeID:
                 thisLine = [cfr, nodeID]
             
-                treeOp = TreeOperator(connection = self.connection, nodeID = nodeID)
-            
+                t = TreeOperator(connection = self.connection)
+                family = t.get_family(nodeID=nodeID)
                 #append action frequencies at this node
                 if needsTitles is True:
                     title.append("frequencies at node")
                 thisLine.append("   ")
                 
-                for s in treeOp.sisters:
+                for s in family.sisters:
                     if needsTitles is True:
                         title.append(s)
                     freq = self.tryFunction(pio.getActionFrequency, [[s]])
@@ -124,9 +123,7 @@ class Program:
                     title.append("frequencies after node")
                 thisLine.append("   ")
                 
-            
-                children = treeOp.getChildIDs(nodeID)
-                for c in children:
+                for c in family.children:
                     if needsTitles is True:
                         title.append(c)
                     freq = self.tryFunction(pio.getActionFrequency, [[c]])
@@ -138,7 +135,7 @@ class Program:
                         title.extend(["", "EV OOP", "EV IP"])
                 thisLine.append("   ")
                 
-                self.interface.output("Solving " + cfr + "to an accuracy of " + str(self.connection.accuracy) + ".")
+                self.interface.output("Solving " + cfr + " to an accuracy of " + str(self.connection.accuracy) + ".")
                 # append EVs to line
                 evs = self.tryFunction(pio.getEV, [])
                 if evs:
@@ -168,7 +165,7 @@ class Program:
                 elif (removeExtension(file) in nodeBook):
                     return nodeBook[removeExtension(file)]
                 else:
-                    raise Exception(file + "not specific in board file.")
+                    raise Exception(file + " not specified in nodeBook file.")
                     
     # args[0][0] : the folder path
     # args[0][1] : list of .cfr files
@@ -186,18 +183,13 @@ class Program:
             pio.load_tree(folder + "\\" + cfr)
             nodeID = self.tryFunction(self.get_file_nodeID, [cfr, nodeBook])
             if nodeID:
-                treeOp = TreeOperator(self.connection, nodeID)
-                treeOp.set_strategy([categWeights, nodeID].copy())
+                treeOp = TreeOperator(self.connection)
+                treeOp.set_strategy([nodeID, categWeights].copy())
                 self.interface.output("Strategy set for " + cfr)
                 pio.saveTree([path + cfr])
-                
-
-        
+                    
         self.interface.output("Done!")
     
-    def help(self, args : list[str]):
-        # we have to explicitly close the solver process
-        self.interface.displayOptions()
         
     def end(self, args : list[str]):
         # we have to explicitely close the solver process

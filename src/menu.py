@@ -33,7 +33,6 @@ class PluginCommands(Enum):
                        "Allows you to change accuracy of solver (default is .002)")
     
     END = Command("end", [], "")
-    HELP = Command("help", [], "")
 
 
 

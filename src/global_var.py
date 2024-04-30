@@ -4,6 +4,7 @@ solverPath = "C:\PioSOLVER\PioSOLVER3-pro.exe"
 accuracy = .002 # as a fraction of pot
 
 
+# "C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\As5h3s_small.cfr"
 currentdir = os.getcwd() + "\\"
 totalCombos = 1326
 

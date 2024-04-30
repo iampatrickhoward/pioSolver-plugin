@@ -1,45 +1,79 @@
 from __future__ import annotations
-from stringFunc import parseStringToList, parseNodeIDtoList, makeNodeIDfromList, parseStrategyToList, makeStrategyFromList
+from stringFunc import parseStringToList, parseNodeIDtoList, makeNodeIDfromList, parseStrategyToList, makeStrategyFromList, makeString
 from global_var import totalCombos, hand_category_index, draw_category_index, exception_categories
 
 
 printConsole = False
 
-class TreeOperator(): 
-    def __init__(self, connection, nodeID = "r:0:c"):
-        self.connection = connection
-        if self.connection.command("is_tree_present") == "false":
-            raise Exception("No tree is loaded; cannot perform tree operations")
-            
+
+def tryPio(connection, func , args : list): 
+        try:
+            #command not meant to have any inputs
+            if args is None or len(args) == 0:
+                return func()
+            #command meant to take a single input
+            elif len(args) == 1:
+                return func(args[0])
+            #command meant to take a list of inputs
+            else:
+                return func(args)
+        except Exception as e:
+            connection.exit()
+            raise e
+
+# when entering in weights in JSON, could be decimal or percentage. 
+# this accounts for inconsistency in human entry (20% could be typed in as .2 or 20)   
+def normalizeWeight(n: float) -> float:
+    if (n > 1):
+        n = n/100
+    return n
+    
+class nodeFamily():
+    def __init__(self, nodeID : str, parent : str = "", index : int = 0, sisters : list[str] = [], children : list[str] = []) -> None:
         self.nodeID = nodeID
-        # sets the parent, sisters, and index fot he target node
-        self.get_family()
-        self.children = self.getChildIDs(nodeID)
-    
-    
-    
-    # args[0] weightsFile
-    def set_strategy(self, args : list) :
-        #makeMappings()
-        weightMap = args[0]
+        self.parent = parent
+        self.index = index
+        self.sisters = sisters
+        self.children = children
+
+class nodeInfo():
+    def __init__(self, nodeID : str, type : str = "", board : str = "", pot : str = "") -> None:
+        self.nodeID = nodeID
+        self.type = type
+        self.board = board
+        self.pot = pot
         
-        self.connection.command("unlock_node " + self.parent) 
+class TreeOperator(): 
+    def __init__(self, connection):
+        self.connection = connection
+        if tryPio(self.connection, self.connection.command, ["is_tree_present"]) == "false":
+            raise Exception("No tree is loaded; cannot perform tree operations")
+        
+    
+    # args[0] nodeId
+    # args[1] weightsFile
+    def set_strategy(self, args : list) :
+        nodeID = args[0]
+        family = self.get_family(nodeID)
+        weightMap = args[1]
+        
+        self.connection.command("unlock_node " + family.parent) 
         
         # the strategy map of the target node and all its sister nodeq
         # format: a list of a list of 1326 floats (one per combo)
-        strategy = self.getCurrentStrategyAsList(self.parent)
+        strategy = self.getCurrentStrategyAsList(family.parent)
         
         if printConsole:
             print(strategy)
         
-        self.alter_strategy(strategy, weightMap, self.nodeIndex, self.nodeID)
+        self.alter_strategy(strategy, weightMap, family.index, nodeID)
         
         # set the new target strategy in the original pio output 
         strategy = makeStrategyFromList(strategy)
         
-        self.connection.command("set_strategy " + self.parent + " " + strategy)
+        self.connection.command("set_strategy " + family.parent + " " + strategy)
         
-        self.connection.command("lock_node " + self.parent) 
+        self.connection.command("lock_node " + family.parent) 
     
     
     
@@ -51,22 +85,25 @@ class TreeOperator():
 
     # in order to nodelock a particular decision, we need to reference it by its index number as the child of the parent
     # this takes a node and returns both in the form [parentNodeID, [sister node IDs], index]
-    def get_family(self):
-        nodes = parseNodeIDtoList(self.nodeID)
+    def get_family(self, nodeID : str) -> nodeFamily:
+        family = nodeFamily(nodeID=nodeID)
+        
+        family.children = self.getChildIDs(nodeID)
+        nodes = parseNodeIDtoList(nodeID)
         # remove last decision to get parents
         nodes.pop()
         # turn list back into ID
-        self.parent = makeNodeIDfromList(nodes)
-        self.sisters = self.getChildIDs(self.parent)
+        family.parent = makeNodeIDfromList(nodes)
+        family.sisters = self.getChildIDs(family.parent)
         index = 0
-        for id in self.sisters:
-            if id == self.nodeID:
-                self.nodeIndex = index
-                return
+        for id in family.sisters:
+            if id == nodeID:
+                family.index = index
+                return family
             index = index + 1
             
-        error = "Invalid decision node - the child nodes of " + self.parent + " are: "
-        for id in self.sisters:
+        error = "Invalid decision node - the child nodes of " + family.parent + " are: "
+        for id in family.sisters:
             error = error + " " + id
         raise Exception(error)
         
@@ -95,18 +132,28 @@ class TreeOperator():
         
         return ids
 
-    # gets the board at the current node in a format that can be fed to other commands
-    def getBoard(self, nodeID : str) -> str:
+    
+    # gets the info at the current node 
+    def getNodeInfo(self, nodeID : str) -> str:
         # example output: ['r:0:c', 'IP_DEC', 'As 5h 3s', '0 0 55', '2 children', 'flags: PIO_CFR', '']
         op : list[str] = self.connection.command("show_node " + nodeID)
-        # remove whitespace from board
-        board : str = op[2].replace(" ", "")
-        # format As5h3s
-        return board
+        info = nodeInfo(nodeID=nodeID)
+        info.type = op[1]
+        # gets the board at the current node in a format that can be fed to other commands (remove whitspace to get format like As5h3s)
+        info.board = op[2].replace(" ", "")
+        info.pot = op[3]
+        return info
 
-        
+    
+    # gets range at particular node
+    def getRange(self, nodeID : str) -> str:
+        oop_range : str = makeString(self.connection.command("show_range OOP " + nodeID))
+        ip_range : str = makeString(self.connection.command("show_range IP " + nodeID))
+        return [oop_range, ip_range]
+    
+       
     def parseCategories(self, nodeID):
-        op = self.connection.command("show_categories " + self.getBoard(nodeID))
+        op = self.connection.command("show_categories " + self.getNodeInfo(nodeID).board)
         # a 1326 length list of integers, each referencing the hand category the corresponding combo belongs to.
         hand_per_combo = parseStringToList(op[0])
         draw_per_combo = parseStringToList(op[1])
@@ -130,18 +177,11 @@ class TreeOperator():
             # if it is a draw category
             if category_name in draw_category_index:
                 strategy = self.update_weight(strategy, targetIndex, target_draw_cats, draw_category_index.get(category_name), weightMap.get(category_name), addInsteadOfReplace)
-
-    # when entering in weights in JSTON, could be decimal or percentage. 
-    # this accounts for inconsistency in human entry (20% could be typed in as .2 or 20)
-    def normalizeWeight(self, weight_in_JSON: float) -> float:
-        if (weight_in_JSON > 1):
-                weight_in_JSON = weight_in_JSON/100
-        return weight_in_JSON
     
     # alters the combos that belong to the given category to the given weight
     # updates the corresponding combos in the other child nodes to a weight that keeps the proportions of the other strategies the same as before
     def update_weight(self, strategy : list[list[float]], targetIndex : int, categoriesOfCombos : list[int], category : int, newWeight : float, addWeight : bool) -> list[float]:
-        newWeight = self.normalizeWeight(newWeight)
+        newWeight = normalizeWeight(newWeight)
         for comboIndex in range(0,totalCombos):
             # if the category of the combo in the target node is equal to the category whose weight we are trying to change
             if categoriesOfCombos[comboIndex] == category:
