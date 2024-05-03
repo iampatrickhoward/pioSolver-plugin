@@ -36,6 +36,9 @@ class Interface:
     # output message
     def output(self, message) -> None:
         print(message)
+    
+    def notify(self, message) -> None:
+        print(message)
 
 class TextInterface(Interface):
     def __init__(self) -> None:

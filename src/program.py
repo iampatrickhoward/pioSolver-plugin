@@ -135,11 +135,11 @@ class Program:
                         title.extend(["", "EV OOP", "EV IP"])
                 thisLine.append("   ")
                 
-                self.interface.output("Solving " + cfr + " to an accuracy of " + str(self.connection.accuracy) + ".")
+                self.interface.notify("Solving " + cfr + " to an accuracy of " + str(self.connection.accuracy) + ".")
                 # append EVs to line
                 evs = self.tryFunction(pio.getEV, [])
                 if evs:
-                    self.interface.output("Solved " + cfr + ".")
+                    self.interface.notify("Solved " + cfr + ".")
                     thisLine.extend(evs)
                 
                 toCSV.append(thisLine)
@@ -147,6 +147,7 @@ class Program:
             needsTitles = False
             
         addRowstoCSV(path, toCSV)
+        self.interface.output("Done!")
         
     #args[0] : file Name
     #args[1] : either a string with the nodeID or a map with .cfr file names -> file-specific nodeIDs
@@ -185,7 +186,7 @@ class Program:
             if nodeID:
                 treeOp = TreeOperator(self.connection)
                 treeOp.set_strategy([nodeID, categWeights].copy())
-                self.interface.output("Strategy set for " + cfr)
+                self.interface.notify("Strategy set for " + cfr)
                 pio.saveTree([path + cfr])
                     
         self.interface.output("Done!")
