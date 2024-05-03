@@ -109,6 +109,7 @@ class Decisions(Enum):
         BET = "bet"
         TURN = "turn"
         RIVER = "river"
+        FOLD = "f"
         
         def __str__(self):
             return self.value
@@ -230,10 +231,13 @@ class BoardFile(FileInput):
                 return Decisions.BET
             elif node[1:].isnumeric() : 
                 return Decisions.BET_SIZE
+        if first == "f":
+            return Decisions.FOLD
         if node == "turn" :
             return Decisions.TURN
         if node == "river" :
             return Decisions.RIVER
+        
         
         raise Exception(Errors.invalid_node(node))
         
