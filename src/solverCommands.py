@@ -2,10 +2,11 @@
 from __future__ import annotations
 from stringFunc import parseEV, toFloat, parseTreeInfoToMap, parseSettingsToMap
 import unittest
+from inputs import BoardFile, Decisions
 from global_var import solverPath
 from SolverConnection.solver import Solver
 from treeops import TreeOperator, normalizeWeight, nodeInfo
-
+from fileIO import addRowstoCSV, addRowtoCSV, IO
 consoleLog = False
 
 # functions that transmit commands to the solver to get correct output
@@ -32,6 +33,25 @@ class SolverCommmand():
         except Exception as e:
             self.connection.exit()
             raise e
+    
+    def try_and_ignore_pio(self, func, args : list): 
+        if consoleLog:
+            for a in args:
+                print("---- " + a)
+        try:
+            #command not meant to have any inputs
+            if args is None or len(args) == 0:
+                return func()
+            #command meant to take a single input
+            elif len(args) == 1:
+                return func(args[0])
+            #command meant to take a list of
+            else:
+                return func(args)
+        except Exception as e:
+            print(e)
+            for a in args:
+                print("---- " + a)
         
     
     def run_until(self, command, confirmation):
@@ -46,25 +66,19 @@ class SolverCommmand():
 
     def getTreeInfo(self):
         self.tryPio(self.connection.command, [""])
-        
-    # no args
-    def getEV(self) :
+    
+    def solve(self):
         self.tryPio(self.connection.command, ["go" ])
         self.tryPio(self.connection.write_line, ["wait_for_solver"])
         self.tryPio(self.connection.wait_line, ["wait_for_solver ok!"])
         self.tryPio(self.connection.read_until_end, [])
         
+    # no args
+    def getEV(self) :
         op = self.tryPio(self.connection.command, ["calc_results"])
         
         return parseEV(op)
 
-    def getEV_partial(self, args : list) :
-        nodeId = args[0]
-        self.run_until("solve_partial " + nodeId, "solve_partial ok!")
-        
-        op = self.tryPio(self.connection.command, ["calc_results"])
-        
-        return parseEV(op)
     
     # arg[0] = nodeID
     def getActionFrequency(self, args : list) :
@@ -113,14 +127,35 @@ class SolverCommmand():
         
     # arg[0] = path
     def saveTree(self, args : list) :
-        self.tryPio(self.connection.command, ["dump_tree \"" + args[0] + "\""])
+        self.run_until("dump_tree \"" + args[0] + "\"", "dump_tree ok!")
+    
+def parseNodeLinetoBetSizes (line : str) -> str:
+    size = 0
+    previousSize = 0
+    bet_sizes = ""
+    decisions = BoardFile.makeDecisionList(line)
+    #remove root
+    decisions.pop(0)
+    for d in decisions:
+        if d == Decisions.FOLD:
+            bet_sizes = bet_sizes + str(previousSize) 
+        else:
+            previousSize = size
+            if type(d) is str:
+                size = size + int(toFloat(d))
+            bet_sizes = bet_sizes + str(size) + " "
+        # print("size :" + str(size) + ", previous size :" + str(previousSize))
+    
+    
+    return bet_sizes
         
+    
         
 class Tests(unittest.TestCase):
     
 
     
-    def testgetEVs(self):
+    def getEVs(self):
         self.connection = Solver(solverPath)
         self.pio = SolverCommmand(self.connection)
         testFiles = {"KdTc9h_small.cfr" : [36.790, 16.210] ,
@@ -136,7 +171,7 @@ class Tests(unittest.TestCase):
         self.connection.exit()
     
 
-    def testSetAccuracy(self):
+    def SetAccuracy(self):
         self.connection = Solver(solverPath)
         self.pio = SolverCommmand(self.connection)
         self.pio.load_tree(r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\KdTc9h.cfr")
@@ -149,7 +184,7 @@ class Tests(unittest.TestCase):
         
         self.connection.exit()
             
-    def testFrequencies(self):
+    def Frequencies(self):
         self.connection = Solver(solverPath)
         self.pio = SolverCommmand(self.connection)
         
@@ -174,8 +209,41 @@ class Tests(unittest.TestCase):
         
         # load_tree "C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\KdTc9h_small.cfr"
         self.pio.load_tree(r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\KdTc9h_small.cfr")
-        self.pio.createSubtree(["r:0:c:b16:c:3c:c:b77"])
-        self.pio.saveTree([r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\KdTc9h_small_subtree.cfr"])
+        tree_lines = self.connection.command("show_all_lines")
+        
+        # created at r:0:c:b16:c:3c:c:b77
+        self.pio.load_tree(r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\KdTc9h_small_sub.cfr")
+        subtree_lines = self.connection.command("show_all_lines")
+        
+        tree = []
+        subtree = []
+        not_in_subtree = []
+        not_in_tree = []
+        
+        for line in tree_lines:
+            tree.append([line])
+            if line not in subtree_lines:
+                not_in_subtree.append([line])
+
+                
+        
+        for line in subtree_lines:
+            subtree.append([line])
+            if line not in tree_lines:
+                not_in_tree.append([line])
+                
+            
+                
+
+        addRowstoCSV("tree.csv", tree, [IO.LOCAL])
+        addRowstoCSV("not_in_subtree.csv", not_in_subtree, [IO.LOCAL])
+        addRowstoCSV("subtree.csv", subtree, [IO.LOCAL])
+        addRowstoCSV("not_in_tree.csv", not_in_tree, [IO.LOCAL])
+        
+        self.connection.exit()
+        
+        #self.pio.createSubtree(["r:0:c:b16:c:3c:c:b77"])
+        #self.pio.saveTree([r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\KdTc9h_small_subtree.cfr"])
         # show_node r:0:c:b16:c:3c:c:b77
         # show_range OOP r:0:c:b16:c:3c:c:b77
         # show_range IP r:0:c:b16:c:3c:c:b77
@@ -189,6 +257,37 @@ class Tests(unittest.TestCase):
         pot = 87
         stacks = 959
         board = "KdTc9h3c"
+
+    def testNodeLineToBetSize(self):
+        self.assertEqual(parseNodeLinetoBetSizes("r:0:c:b16:c:c:b146:b354:b975"), "0 0 16 16 16 16 162 162 516 516 1491 ")
+        self.assertEqual(parseNodeLinetoBetSizes("r:0:c:b16:c:c:b146:b354:b975:c"), "0 0 16 16 16 16 162 162 516 516 1491 1491 ")
+        self.assertEqual(parseNodeLinetoBetSizes("r:0:c:b16:c:c:b146:b354:b975:f"), "0 0 16 16 16 16 162 162 516 516 1491 516")
+        
+    def testTreeGen(self):
+        self.connection = Solver(solverPath)
+        self.pio = SolverCommmand(self.connection)
+        self.pio.load_tree(r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\KdTc9h_small_sub.cfr")
+        info_lines = self.connection.command("show_tree_info")
+        for i in info_lines:
+            addRowtoCSV("test\info_line.csv", [i], [IO.LOCAL, IO.APPEND])
+        tree_lines = self.connection.command("show_all_lines")
+        
+        
+        for line in info_lines:
+            self.connection.command("add_info_line " + line)
+        
+        for line in tree_lines:
+            addRowtoCSV("test\original_tree_lines.csv", [line], [IO.LOCAL, IO.APPEND])
+            if line.startswith("r:0:c"):
+                addRowtoCSV("test\duplicate_tree_lines.csv", [line], [IO.LOCAL, IO.APPEND])
+                print(line)
+                self.pio.try_and_ignore_pio(self.connection.command, ["add_line " + (parseNodeLinetoBetSizes(line))])
+        
+        self.pio.run_until("build_tree", "build_tree ok!")
+        self.pio.saveTree([r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\KdTc9h_small_duplicate.cfr"])
+        
+        self.connection.exit()
+    
         
     def File(self):
         
@@ -206,6 +305,6 @@ class Tests(unittest.TestCase):
         self.assertEqual(OOP_range, OOP_range_correct)
         self.assertEqual(IP_range, IP_range_correct)
         
-
+        
 if __name__ == '__main__': 
     unittest.main() 

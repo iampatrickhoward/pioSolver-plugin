@@ -22,9 +22,10 @@ class Program:
         self.interface = interface
         #maintain a mapping of the commands to the functions that run them
         self.commandDispatcher : dict[Command, Callable[[list[str]], None]] = { 
-            PluginCommands.RUN: self.get_results,
+            PluginCommands.RUN: self.solve_then_get_results,
             PluginCommands.NODELOCK: self.nodelock_and_save,
             PluginCommands.SET_ACCURACY: self.update_accuracy,
+            PluginCommands.GET_RESULTS: self.get_results,
             PluginCommands.END: self.end}
          
     def start(self) -> None :
@@ -77,15 +78,20 @@ class Program:
         return [sisterFrequencies, childFrequencies]
         
     
-
+    # args[0][0] : the folder path
+    # args[0][1] : list of .cfr files
+    # args[1] : either a string with the nodeID or a map with .cfr file names -> file-specific nodeIDs
+    def solve_then_get_results(self, args: list[str]):
+        self.run_cfr(args[0][0], args[0][1], args[1], True)
     
     # args[0][0] : the folder path
     # args[0][1] : list of .cfr files
     # args[1] : either a string with the nodeID or a map with .cfr file names -> file-specific nodeIDs
     def get_results(self, args: list[str]):
-        folder, cfrFiles = args[0]
-        path = folder + "results" + timestamp() + ".csv"
-        nodeBook = args[1]
+        self.run_cfr(args[0][0], args[0][1], args[1], False)
+        
+    def run_cfr(self, folder : str, cfrFiles : list[str], nodeBook, solveFirst):
+        path = folder + "\\results_" + timestamp() + ".csv"
         pio = SolverCommmand(self.connection)
         
         # arrays that will be written to CSV file
@@ -101,6 +107,7 @@ class Program:
             # the `tryFunction` method with arguments `self.get_file_nodeID` as the function to try
             # and `[cfr, nodeBook]` as the arguments to pass to that function.
             nodeID = self.tryFunction(self.get_file_nodeID, [cfr, nodeBook])
+            print(cfr +  "     " + nodeID)
             if nodeID:
                 thisLine = [cfr, nodeID]
             
@@ -115,7 +122,7 @@ class Program:
                     if needsTitles is True:
                         title.append(s)
                     freq = self.tryFunction(pio.getActionFrequency, [[s]])
-                    if freq:
+                    if freq == 0 or freq:
                         thisLine.append(str(freq))
                 
                 #append action frequencies after this node
@@ -127,7 +134,7 @@ class Program:
                     if needsTitles is True:
                         title.append(c)
                     freq = self.tryFunction(pio.getActionFrequency, [[c]])
-                    if freq:
+                    if freq == 0 or freq:
                         thisLine.append(str(freq))
                 
                 # for whatever reason, if you cannot get the line frequencies after running the solver, 
@@ -135,8 +142,14 @@ class Program:
                         title.extend(["", "EV OOP", "EV IP"])
                 thisLine.append("   ")
                 
-                self.interface.notify("Solving " + cfr + " to an accuracy of " + str(self.connection.accuracy) + ".")
+                if solveFirst:
+                    self.interface.notify("Solving " + cfr + " to an accuracy of " + str(self.connection.accuracy) + ".")
                 # append EVs to line
+                
+                # solve first if args[2] is true
+                if solveFirst:
+                    self.tryFunction(pio.solve, [])
+                    
                 evs = self.tryFunction(pio.getEV, [])
                 if evs:
                     self.interface.notify("Solved " + cfr + ".")
@@ -213,14 +226,14 @@ class Tests(unittest.TestCase):
         self.all_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\all_to_hundred.json")
         self.b = BoardFile("test").parseInput(self.sampleFolder + r"\board_simple.json")
         
-    def testCommandDispatcher(self):
+    def commandDispatcher(self):
         self.assertTrue(callable(self.p.commandDispatcher[PluginCommands.RUN]))
         
     def testSolve(self):
-        self.p.get_results([[self.sampleFolder + "\\cfr", self.oneFile],"testResults" + timestamp(),self.b])
+        self.p.get_results([[self.sampleFolder + "\\cfr", self.allFiles], self.b, False])
         self.p.end([])
     
-    def testNodelock(self):
+    def Nodelock(self):
         self.p.nodelock_and_save([[self.sampleFolder + "\\cfr", self.oneFile], self.all_weights, self.b])
         self.p.end([])
         

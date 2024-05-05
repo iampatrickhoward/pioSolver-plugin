@@ -23,6 +23,11 @@ class PluginCommands(Enum):
                    BoardFile("Pick a file with the nodeID and board texture for each .cfr file")],
                   "")
     
+    GET_RESULTS = Command("get results of .cfr files in .csv",
+                          [FolderOf(Extension.cfr, "Pick a folder of .cfr files to run"),
+                            BoardFile("Pick a file with the nodeID and board texture for each .cfr file")],
+                            "")
+    
     NODELOCK = Command("nodelock",
                        [FolderOf(Extension.cfr, "Pick a folder of .cfr files"),
                         WeightsFile ("Pick a weights file"),
