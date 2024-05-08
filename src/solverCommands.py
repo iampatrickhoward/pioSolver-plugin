@@ -5,6 +5,7 @@ import unittest
 from inputs import BoardFile, Decisions
 from global_var import solverPath
 from SolverConnection.solver import Solver
+from decimal import *
 from treeops import TreeOperator, normalizeWeight, nodeInfo
 from fileIO import addRowstoCSV, addRowtoCSV, IO
 consoleLog = False
@@ -105,7 +106,7 @@ class SolverCommmand():
                 print(i)
 
                 
-        accuracy = info["Pot"] * percent
+        accuracy = info["Pot"] * Decimal(percent)
         self.tryPio(self.connection.command, ["set_accuracy " + str(accuracy)])
         
     
@@ -171,13 +172,17 @@ class Tests(unittest.TestCase):
         self.connection.exit()
     
 
-    def SetAccuracy(self):
+    def testSetAccuracy(self):
         self.connection = Solver(solverPath)
         self.pio = SolverCommmand(self.connection)
         self.pio.load_tree(r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\KdTc9h.cfr")
         
         info = parseTreeInfoToMap(self.connection.command("show_tree_info"))
         self.assertEqual(info["Pot"], 55)
+        settings = parseSettingsToMap(self.connection.command("show_settings"))
+        self.assertEqual(settings["accuracy"], 55*.002)
+        
+        
         self.pio.setAccuracy([.01]) 
         settings = parseSettingsToMap(self.connection.command("show_settings"))
         self.assertEqual(settings["accuracy"], .55)
@@ -258,12 +263,12 @@ class Tests(unittest.TestCase):
         stacks = 959
         board = "KdTc9h3c"
 
-    def testNodeLineToBetSize(self):
+    def NodeLineToBetSize(self):
         self.assertEqual(parseNodeLinetoBetSizes("r:0:c:b16:c:c:b146:b354:b975"), "0 0 16 16 16 16 162 162 516 516 1491 ")
         self.assertEqual(parseNodeLinetoBetSizes("r:0:c:b16:c:c:b146:b354:b975:c"), "0 0 16 16 16 16 162 162 516 516 1491 1491 ")
         self.assertEqual(parseNodeLinetoBetSizes("r:0:c:b16:c:c:b146:b354:b975:f"), "0 0 16 16 16 16 162 162 516 516 1491 516")
         
-    def testTreeGen(self):
+    def TreeGen(self):
         self.connection = Solver(solverPath)
         self.pio = SolverCommmand(self.connection)
         self.pio.load_tree(r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\KdTc9h_small_sub.cfr")

@@ -1,6 +1,7 @@
 import subprocess
 import os
 import pathlib
+from global_var import accuracy
 
 class SolverException(Exception):
     pass
@@ -23,7 +24,7 @@ class Solver(object):
         self.wait_line("END")
         self._hand_order = None
         
-        self.accuracy = 0.002
+        self.accuracy = accuracy
 
     def exit(self):
         self.process.kill()

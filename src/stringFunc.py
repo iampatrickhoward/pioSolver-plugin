@@ -2,6 +2,7 @@ from __future__ import annotations
 from errorMessages import Errors
 import unittest
 from datetime import datetime
+from decimal import Decimal
 
 
 
@@ -12,8 +13,8 @@ def timestamp():
 
 def toFloat(string :str):
     try:
-        return float(string)
-    except ValueError:
+        return Decimal(string)
+    except Exception:
         return string
 
 def parseStringToList(strOutput : str) -> list[str]:
@@ -61,7 +62,10 @@ def parseTreeInfoToMap (info : list[str]) -> dict[str, any] :
         # #FlopConfig.RaiseSize#60
         pair = i.split("#")
          # ['', 'FlopConfig.RaiseSize', '60']
-        map[pair[1]] = toFloat(pair[2])
+        try:
+            map[pair[1]] = toFloat(pair[2])
+        except Exception:
+            print("entry is " + str(pair[2]))
     return map
 
 '''
@@ -125,6 +129,11 @@ class Tests(unittest.TestCase):
         nodeIDagain = makeNodeIDfromList(nodeList)
         self.assertEqual(nodeList, ["r:0", "c", "c", "b25", "turn"])
         self.assertEqual(nodeID, nodeIDagain)
+    
+    def testToDecimal(self):
+        str = ".000005"
+        self.assertEqual(toFloat(str) - Decimal(str), 0)
+        self.assertEqual(toFloat("neegus"), "neegus")
 
 if __name__ == '__main__': 
     unittest.main() 

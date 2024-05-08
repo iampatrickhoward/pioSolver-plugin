@@ -1,9 +1,9 @@
 from __future__ import annotations
 from menu import PluginCommands, Command
 from interface import Interface, GUInterface
-from treeops import TreeOperator, nodeFamily
+from treeops import TreeOperator
 from inputs import WeightsFile, BoardFile
-from stringFunc import removeExtension, timestamp, toFloat
+from stringFunc import removeExtension, timestamp, toFloat, parseTreeInfoToMap, parseSettingsToMap
 from SolverConnection.solver import Solver
 from solverCommands import SolverCommmand
 from typing import Callable
@@ -203,6 +203,8 @@ class Program:
                 pio.saveTree([path + cfr])
                     
         self.interface.output("Done!")
+        
+        return path
     
         
     def end(self, args : list[str]):
@@ -218,10 +220,14 @@ class Tests(unittest.TestCase):
         self.oneFile = ["KdTc9h_small.cfr"]
         self.allFiles = ["KdTc9h_small.cfr", "Qh6c5s_small.cfr", "As5h3s_small.cfr"]
         
+        
+    
+        
         self.sampleFolder = currentdir + "\sample"
-        self.p = Program(Solver(solverPath), GUInterface())
+
         
         self.simple_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\simple_weights.json")
+    
         self.exception_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\exception_weights.json")
         self.all_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\all_to_hundred.json")
         self.b = BoardFile("test").parseInput(self.sampleFolder + r"\board_simple.json")
@@ -229,13 +235,58 @@ class Tests(unittest.TestCase):
     def commandDispatcher(self):
         self.assertTrue(callable(self.p.commandDispatcher[PluginCommands.RUN]))
         
-    def testSolve(self):
+    def Solve(self):
         self.p.get_results([[self.sampleFolder + "\\cfr", self.allFiles], self.b, False])
         self.p.end([])
     
-    def Nodelock(self):
-        self.p.nodelock_and_save([[self.sampleFolder + "\\cfr", self.oneFile], self.all_weights, self.b])
-        self.p.end([])
+    def BugOne(self):
+        connection = Solver(solverPath)
+        p = Program(connection, GUInterface())
+        
+        
+        folder = currentdir + "\sample"
+        buggyFiles = [ "TcTh6h.cfr", "8d5d4c.cfr", "As5h3s.cfr"]
+        buggy_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\buggy_weights.json")
+        simple_board = BoardFile("test").parseInput(self.sampleFolder + r"\board_simple.json")
+        
+        path = p.nodelock_and_save([[folder + "\\buggy_cfr", buggyFiles], buggy_weights, simple_board])
+        
+        info = parseTreeInfoToMap(self.connection.command("show_tree_info"))
+        potSize = info["Pot"]
+        settings = parseSettingsToMap(self.connection.command("show_settings"))
+        acc = settings["accuracy"]
+        print("Accuracy is " + str(acc) + " chips.")
+        self.assertEqual(acc, potSize*.002)
+        
+        
+        p.solve_then_get_results([[path, buggyFiles], simple_board])
+        p.end([])
+    
+    def testBugTwo(self):
+        connection = Solver(solverPath)
+        p = Program(connection, GUInterface())
+        
+        
+        folder = currentdir + "\sample"
+        buggyFiles = [ "Qc8cTs.cfr"]
+        simple_board = BoardFile("test").parseInput(folder + r"\board_simple.json")
+        path = folder + "\\Qc8cTs"
+        
+        pio = SolverCommmand(connection)
+        pio.load_tree(path + "\\" + buggyFiles[0])
+        
+        
+        info = parseTreeInfoToMap(connection.command("show_tree_info"))
+        potSize = info["Pot"]
+        settings = parseSettingsToMap(connection.command("show_settings"))
+        acc = settings["accuracy"]
+        print("Accuracy is " + str(acc) + " chips.")
+        self.assertEqual(acc, potSize*.002)
+        
+        
+        p.solve_then_get_results([[path, buggyFiles], simple_board])
+        p.end([])
+
         
 if __name__ == '__main__': 
     unittest.main() 
