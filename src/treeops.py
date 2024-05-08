@@ -205,8 +205,7 @@ class TreeOperator():
                     else :
                         # if the other decisions were 0, make them equally likely
                         if oldWeight == 1:
-                            getcontext()
-                            strategy[childIndex][comboIndex] = (Decimal(1) - finalWeight)/(len(strategy) - 1)
+                            strategy[childIndex][comboIndex] = (Decimal(1) - finalWeight)/(Decimal(len(strategy) - 1))
                         #  if not, multiply a constant that will maintain their relative proportions
                         else:
                             k = (Decimal(1) - newWeight)/(Decimal(1) - oldWeight)
