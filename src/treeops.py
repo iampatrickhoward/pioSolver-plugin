@@ -8,7 +8,7 @@ import unittest
 from inputs import WeightsFile
 
 
-printConsole = False
+printConsole = True
 
 
 def tryPio(connection, func , args : list): 
@@ -68,15 +68,19 @@ class TreeOperator():
         # format: a list of a list of 1326 floats (one per combo)
         strategy = self.getCurrentStrategyAsList(family.parent)
         
-        if printConsole:
-            print(strategy)
-        
         self.alter_strategy(strategy, weightMap, family.index, nodeID)
         
         # set the new target strategy in the original pio output 
         strategy = makeStrategyFromList(strategy)
         
         self.connection.command("set_strategy " + family.parent + " " + strategy)
+                
+        if printConsole:
+            print("--------------------------------------------------------")
+            for s in strategy:
+                print(s)
+                print("")
+                print("")
         
         self.connection.command("lock_node " + family.parent) 
     
@@ -114,8 +118,6 @@ class TreeOperator():
         # example output: 
         # ['child 0:', 'r:0:c:b16', 'OOP_DEC', 'As 5h 3s', '0 16 55', '3 children', 'flags: PIO_CFR', '', 'child 1:', 'r:0:c:c', 'SPLIT_NODE', 'As 5h 3s', '0 0 55', '49 children', 'flags:', '']
         output = self.connection.command("show_children " + nodeID) 
-        if printConsole:
-            print (output)
         childList = []
         child = []
         ids = []
