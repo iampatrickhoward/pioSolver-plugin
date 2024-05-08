@@ -77,10 +77,7 @@ class TreeOperator():
                 
         if printConsole:
             print("--------------------------------------------------------")
-            for s in strategy:
-                print(s)
-                print("")
-                print("")
+            print(strategy)
         
         self.connection.command("lock_node " + family.parent) 
     
