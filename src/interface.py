@@ -69,7 +69,7 @@ class TextInterface(Interface):
             # print error message to user
             self.output(str(e))
             # get Argument again 
-            self.getArgument(arg)
+            return self.getArgument(arg)
     
     def getCommandArgs(self, command: Command) -> list[str] :
         userInputs = []
