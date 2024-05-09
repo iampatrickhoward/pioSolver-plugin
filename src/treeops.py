@@ -54,6 +54,7 @@ class TreeOperator():
         if tryPio(self.connection, self.connection.command, ["is_tree_present"]) == "false":
             raise Exception("No tree is loaded; cannot perform tree operations")
         
+        getcontext().prec = 9
     
     # args[0] nodeId
     # args[1] weightsFile
