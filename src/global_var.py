@@ -1,6 +1,6 @@
 import os
 
-solverPath = "C:\PioSOLVER\PioSOLVER3-pro.exe"
+solverPath = "C:\PioSOLVER\PioSOLVER3-edge.exe"
 accuracy = .002 # as a fraction of pot
 
 

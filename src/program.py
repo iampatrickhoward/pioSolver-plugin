@@ -215,29 +215,29 @@ class Program:
     
 
 class Tests(unittest.TestCase):
-    def __init__(self, methodName: solverPath = "runTest") -> None:
-        super().__init__(methodName)
-        self.oneFile = ["KdTc9h_small.cfr"]
-        self.allFiles = ["KdTc9h_small.cfr", "Qh6c5s_small.cfr", "As5h3s_small.cfr"]
-        
-        
-    
-        
-        self.sampleFolder = currentdir + "\sample"
-
-        
-        self.simple_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\simple_weights.json")
-    
-        self.exception_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\exception_weights.json")
-        self.all_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\all_to_hundred.json")
-        self.b = BoardFile("test").parseInput(self.sampleFolder + r"\board_simple.json")
-        
     def commandDispatcher(self):
         self.assertTrue(callable(self.p.commandDispatcher[PluginCommands.RUN]))
+    
+    def testThree(self):
+        connection = Solver(solverPath)
+        p = Program(connection, GUInterface())
         
-    def Solve(self):
-        self.p.get_results([[self.sampleFolder + "\\cfr", self.allFiles], self.b, False])
-        self.p.end([])
+        
+        folder = currentdir + "\sample"
+        buggyFiles = [ r"og.cfr"]
+        
+        
+        easy_weights = WeightsFile("").parseInput(folder + r"\weights\simple_weights.json")
+        buggy_weights = WeightsFile("").parseInput(folder + r"\buggy\weights_2BP_IP_PFR_B_30f_default.json")
+        
+        
+        simple_board = BoardFile("").parseInput(folder + r"\boards\board_simple.json")
+        
+        
+        path = p.nodelock_and_save([[folder + r"\buggy\og\\" , buggyFiles], buggy_weights, simple_board])
+        
+        # p.solve_then_get_results([[path, buggyFiles], simple_board])
+        p.end([])
     
     def BugOne(self):
         connection = Solver(solverPath)
@@ -246,14 +246,14 @@ class Tests(unittest.TestCase):
         
         folder = currentdir + "\sample"
         buggyFiles = [ "TcTh6h.cfr", "8d5d4c.cfr", "As5h3s.cfr"]
-        buggy_weights = WeightsFile("test").parseInput(self.sampleFolder + r"\buggy_weights.json")
-        simple_board = BoardFile("test").parseInput(self.sampleFolder + r"\board_simple.json")
+        buggy_weights = WeightsFile("test").parseInput(folder + r"\buggy_weights.json")
+        simple_board = BoardFile("test").parseInput(folder + r"\board_simple.json")
         
         path = p.nodelock_and_save([[folder + "\\buggy_cfr", buggyFiles], buggy_weights, simple_board])
         
-        info = parseTreeInfoToMap(self.connection.command("show_tree_info"))
+        info = parseTreeInfoToMap(connection.command("show_tree_info"))
         potSize = info["Pot"]
-        settings = parseSettingsToMap(self.connection.command("show_settings"))
+        settings = parseSettingsToMap(connection.command("show_settings"))
         acc = settings["accuracy"]
         print("Accuracy is " + str(acc) + " chips.")
         self.assertEqual(acc, potSize*.002)
@@ -262,7 +262,7 @@ class Tests(unittest.TestCase):
         p.solve_then_get_results([[path, buggyFiles], simple_board])
         p.end([])
     
-    def testBugTwo(self):
+    def BugTwo(self):
         connection = Solver(solverPath)
         p = Program(connection, GUInterface())
         

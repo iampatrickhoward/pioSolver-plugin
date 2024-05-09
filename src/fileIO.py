@@ -70,7 +70,11 @@ def getExtension(file:str) -> str:
         return None
     else:
         return i[1]
-    
+
+
+hand_index_map = JSONtoMap("\mappings\handIndexMap.json", [IO.LOCAL])
+hands = list(hand_index_map.keys())
+
 class Tests(unittest.TestCase):
     
     def testGetExtension(self):

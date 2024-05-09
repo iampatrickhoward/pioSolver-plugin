@@ -4,11 +4,12 @@ from global_var import totalCombos, hand_category_index, draw_category_index, ex
 from decimal import Decimal, getcontext
 from global_var import solverPath, currentdir, accuracy
 from SolverConnection.solver import Solver
+from fileIO import hands
 import unittest
 from inputs import WeightsFile
 
 
-printConsole = True
+printConsole = False
 
 
 def tryPio(connection, func , args : list): 
@@ -71,14 +72,17 @@ class TreeOperator():
         
         self.alter_strategy(strategy, weightMap, family.index, nodeID)
         
+        if printConsole:
+            print("--------------------------------------------------------")
+            for s in strategy:
+                print(makeString(s))
+                print("")
+        
         # set the new target strategy in the original pio output 
         strategy = makeStrategyFromList(strategy)
         
         self.connection.command("set_strategy " + family.parent + " " + strategy)
                 
-        if printConsole:
-            print("--------------------------------------------------------")
-            print(strategy)
         
         self.connection.command("lock_node " + family.parent) 
     
@@ -168,6 +172,7 @@ class TreeOperator():
             # if it is a hand category
             addInsteadOfReplace = category_name in exception_categories
             
+            print(category_name)
             if category_name in hand_category_index:
                 # inputs: the current strategy, the index of the target node, the category index corresponding to the category name, the weight of that category)
                 strategy = self.update_weight(strategy, targetIndex, target_hand_cats, hand_category_index.get(category_name), weightMap.get(category_name), addInsteadOfReplace)
@@ -179,38 +184,63 @@ class TreeOperator():
     # updates the corresponding combos in the other child nodes to a weight that keeps the proportions of the other strategies the same as before
     def update_weight(self, strategy : list[list[float]], targetIndex : int, categoriesOfCombos : list[int], category : int, newWeight : float, addWeight : bool) -> list[float]:
         newWeight = Decimal(normalizeWeight(newWeight))
-        
+        wrongTotal = {}
         for comboIndex in range(0,totalCombos):
             # if the category of the combo in the target node is equal to the category whose weight we are trying to change
             if categoriesOfCombos[comboIndex] == category:
                 
-                oldWeight = Decimal(strategy[targetIndex][comboIndex])
-                
-                finalWeight = newWeight
-                if addWeight:
-                    finalWeight = oldWeight + newWeight
-                    
-                if finalWeight < 0:
-                    raise Exception("Weight adjustment entered is invalid; cannot have negative percentage")
-                
-                if (printConsole):
-                    print("oldWeight : " + str(oldWeight))
-                    print("newWeight : " + str(finalWeight))
-                    
-                
-                
-                # iterate through all child nodes
+                # check if outside range
+                totalWeight = Decimal(0)
+                originalWeightString = "old: "
                 for childIndex in range(0,len(strategy)) :
-                    if childIndex == targetIndex:
-                        strategy[childIndex][comboIndex] = finalWeight
-                    else :
-                        # if the other decisions were 0, make them equally likely
-                        if oldWeight == 1:
-                            strategy[childIndex][comboIndex] = (Decimal(1) - finalWeight)/(Decimal(len(strategy) - 1))
-                        #  if not, multiply a constant that will maintain their relative proportions
+                    totalWeight = totalWeight + Decimal(strategy[targetIndex][comboIndex])
+                    originalWeightString = originalWeightString + " " + str(strategy[childIndex][comboIndex])
+                
+                if totalWeight > Decimal(0):
+                    
+                    wrongTotal = {}
+                
+                    oldWeight = Decimal(strategy[targetIndex][comboIndex])
+                    finalWeight = newWeight
+                
+                    if addWeight:
+                        finalWeight = oldWeight + newWeight
+                    if finalWeight < 0:
+                        raise Exception("Weight adjustment entered is invalid; cannot have negative percentage")
+                    
+
+                    newWeightsTotal = Decimal(0)
+                    newWeightStr = "new:"
+                    
+                    # lastSister = (len(strategy) - 1) if targetIndex != (len(strategy) - 1) else (len(strategy) - 2)
+                    
+                    # iterate through all child nodes
+                    for childIndex in range(0,len(strategy)) :
+                        weight = 0
+                        if childIndex == targetIndex:
+                            weight = finalWeight
                         else:
-                            k = (Decimal(1) - newWeight)/(Decimal(1) - oldWeight)
-                            strategy[childIndex][comboIndex] = Decimal(strategy[childIndex][comboIndex])* Decimal(k)
+                            # if the other decisions were 0, make them equally likely
+                            if round(oldWeight,6) == 1:
+                                weight = (Decimal(1) - finalWeight)/(Decimal(len(strategy) - 1))
+                            #  if not, multiply a constant that will maintain their relative proportions
+                            else:
+                                k = (Decimal(1) - finalWeight)/(Decimal(1) - oldWeight)
+                                weight = Decimal(strategy[childIndex][comboIndex])* Decimal(k)
+                            
+                        
+                        
+                        strategy[childIndex][comboIndex] = weight
+                        
+                        
+                        newWeightsTotal = newWeightsTotal + weight
+                        newWeightStr = newWeightStr + " " + str(weight)
+                        
+                    if round(newWeightsTotal, 4) != 1:
+                        wrongTotal[category + str(comboIndex)] = [originalWeightString, newWeightStr, str(newWeightsTotal)]
+                        
+        for w in wrongTotal:
+            print("(" + str(w) + ")" + ": " + str(wrongTotal[w]))   
         return strategy
 
 
@@ -218,10 +248,11 @@ class Tests(unittest.TestCase):
     
     def testQc8cTsResults(self):
         folder = currentdir + "\sample"
-        cfr = folder + r"\Qc8cTs\og.cfr"
+        cfr = folder + r"\buggy\og\og.cfr"
         node = "r:0:c:b16"
         
-        weights = WeightsFile("test").parseInput(folder + r"\buggy_weights.json")
+        #weights = WeightsFile("test").parseInput(folder + r"\weights\simple_weights.json")
+        weights = WeightsFile("test").parseInput(folder + r"\buggy\weights_2BP_IP_PFR_B_30f_default.json")
         
         connection = Solver(solverPath)
         connection.write_line("load_tree \"" + cfr)
@@ -232,14 +263,14 @@ class Tests(unittest.TestCase):
         
         connection.read_until_end()
         
-        #t = TreeOperator(connection)
-        #index = t.get_family(node).index
-        #t.set_strategy([node, weights])
+        t = TreeOperator(connection)
+        index = t.get_family(node).index
+        t.set_strategy([node, weights])
         
-        strategy = connection.command("show_strategy " + node)
+        #strategy = connection.command("show_strategy " + node)
         
-        for s in strategy:
-            print(s)
+        #for s in strategy:
+        #    print(s)
         #self.assertEqual(strategy[index], "0.500001729 0.50000304 0.49999994 0.50000006 0.500000119 0.50000006 0 0 0 0 0 0 0 0 0.499999464 0 0 0 0 0.5 0.50000006 0 0 0 0 0.500000298 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.49999997 0 0 0 0 0 0 0 0 0.50000006 0.5 0 0 0 0 0 0 0 0 0.500000179 0.50000006 0.50000006 0 0 0 0 0.75 0 0 0 0.750000298 0 0 0 0 0 0 0 0 0.50000006 0 0 0 0.5 0 0 0.50000006 0 0 0 0 0 0 0.50000006 0 0 0 0.50000006 0 0.5 0.5 0 0 0 0 0 0 0 0.499999464 0 0 0 1 0.49999994 0.5 0.5 0 0 0 0 0 0 0 0 0.75 0 0 0 0.750000119 0 0 0 0 0 0 0 0 0 0 0 0 0.50000006 0 0 0 0.5 0 0 0.5 0 0 0 0 0 0 0 0 0 0 0.499998212 0 0 0 1 0 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0.5 0.50000006 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0.75 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0 0 0 0.75000006 0 0 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0 0 0 0.75000006 0 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0 0 0 0.74999994 0.5 0.5 0.50000006 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.50000006 0 0 0 0.50000006 0 0 0 0.50000006 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0 0 0 0.500000119 0 0 0 0.50000006 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0 0 0 0.49999997 0 0 0 0.5 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 0 0.500000119 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.75000006 0 0 0 0.75000006 0 0 0 0.5 0.5 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.74999994 0 0 0 0.75 0 0 0.5 0.5 0.5 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.75 0 0 0 0.75000006 0 0.5 0.5 0.5 0.5 0.500000119 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.500000238 0 0 0 0.500000119 0 0 0 0 1 1 1 0.5 0.5 0.49999994 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.500000775 0 0 0 0.500001252 0 0 0 1 1 1 0.500000119 0.499999881 0.5 0.5 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.500001311 0 0 0 0.499999195 0 0 1 1 1 0.500000119 0.499999881 0.5 0.500000238 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0.5 0.5 0.5 1 1 1 1 0.5 0.5 0.499999881 0 0 0 0 0 0 0 0 0 0 0.75 0 0 0 0.75 0 0 0 0.75 0 0 0 0.75 0 0 0 0.5 0.5 0.5 1 1 1 1 0.5 0.5 0.5 0 0.250000209 0 0 0 0 0 0 0 0 0 0 0.74999994 0 0 0 0.750000119 0 0 0 0.75 0 0 0 0.75 0 0 0.5 0.5 0.5 1 1 1 1 0.5 0.5 0.5 0 0.250000209 0.249999911 0 0 0 0 0 0 0 0 0 0 0 0.749999881 0 0 0 0.75000006 0 0 0 0.75 0 0 0 0.75 0 0.5 0.5 0.5 1 1 1 1 0.5 0.5 0.5 0 0.25 0.249999911 0.250000298 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.50000006 0 0 0 0.500000238 0 0 0 0.500000119 0 0 0 0.500000119 0 0 0 0.5 0 0 0 0.5 0 0 0 1 0 0 0.499999821 0.5 0.500000119 0.49999994 1 1 1 0 0.500000179 0.5 0.500000179 0.5 0 0 0 0.500000238 0 0 0 0.50000006 0 0 0 0.500000119 0 0 0 0.50000006 0 0 0 0.5 0 0 0 0.5 0 0 0 1 0 0.5 0.500000119 0.5 0.500000119 1 1 1 0 0.499999702 0.5 0.5 0.500000119 0 1 0 0 0 0.500000119 0 0 0 0.500000119 0 0 0 0.50000006 0 0 0 0.500000358 0 0 0 0.500000358 0 0 0 0.5 0 0 0 1 0.500000119 0.5 0.5 0.5 1 1 1 0 0.500000119 0.5 0.499999911 0.5 0 1 1 0.750000179 0 0 0 0.74999994 0 0 0 0.75 0 0 0 0.75 0 0 0 0.750000179 0 0 0 0.75 0 0 0 0 0.5 0.5 0.5 1 0.750000238 0.750000119 0.75 0.5 0.50000006 0.50000006 0 1 0.75 0.75000006 0.75 0 0.500000119 0.50000006 0.50000006 0 0.49999997 0 0 0 0.50000006 0 0 0 0.499999881 0 0 0 0.49999997 0 0 0 0.50000006 0 0 0 0.499999911 0 0 0 0.50000006 0.50000006 0.5 0.75000006 0.750000119 0.750000119 0.75 0.49999994 0.5 0.5 0 0.74999994 0.75000006 0.75 0.75 0 0.5 0.49999994 0.5 1 0 0 0.50000006 0 0 0 0.500000417 0 0 0 0.49999997 0 0 0 0.5 0 0 0 0.5 0 0 0 0.5 0 0 0.50000006 0.5 0.5 0.749999881 0.750000119 0.75000006 0.75 0.5 0.5 0.5 0 0.74999994 0.75 0.750000119 0.74999994 0 0.5 0.50000006 0.5 1 1 0 0 0 0.49999994 0 0 0 0.50000006 0 0 0 0.50000006 0 0 0 0.49999994 0 0 0 0.5 0 0 0 0.5 0 0.5 0.5 0.5 0.75000006 0.75000006 0.75 0.75 0.5 0.499999911 0.500000119 0 0.750000119 0.75 0.75 1 0 0.50000006 0.5 0.5 1 1 1 0.749999881 0 0 0 0.750000298 0 0 0 0.750000298 0.500000477 0.500000417 0.49999997 0.75 0.500000179 0.50000006 0.49999997 0.74999994 0.50000006 0.5 0.50000006 0.750000238 0.50000006 0.49999997 0.500000238 0 0.49999994 0.500000119 0.5 1 0.75000006 0.75 0.749999881 0.5 0.50000006 0.50000006 0 1 0.75 0.75 0.75000006 0 0.50000006 0.499999911 0.5 1 0.750000119 0.75 0.750000358 0 0.500000477 0 0 0 0.49999994 0 0 0.5 0.49999994 0.50000006 0.5 1 0.5 0.5 0.5 0.50000006 0.5 0.50000006 0.50000006 0.5 0.5 0.5 0.5 0 0.5 0.5 0.5 0.750000119 0.75 0.750000119 1 0.49999994 0.50000006 0.50000006 0 0.75 0.75000006 0.74999994 0.75 0 0.50000006 0.49999994 0.5 0.75 0.750000119 0.75 0.750000119 1 0 0 0.500001192 0 0 0 0.499999851 0 1 0.5 0.50000006 0.50000006 1 0.5 0.5 0.50000006 0.50000006 0.5 0.5 0.49999994 0.500000119 0.5 0.5 0.50000006 0 0.5 0.5 0.5 0.75 0.75000006 0.75000006 0.75 0.5 0.5 0.50000006 0 0.75 0.75 0.74999994 0.75 0 0.50000006 0.49999994 0.5 0.75 0.75000006 0.75000006 0.75 1 1 0 0 0 0.50000006 0 0 0 0.5 1 0.5 0.50000006 0.50000006 1 0.50000006 0.50000006 0.5 0.50000006 0.5 0.50000006 0.49999994 0.49999994 0.5 0.49999994 0.5 0 0.50000006 0.5 1 0.75 0.75000006 0.75 0.75 0.5 0.50000006 0.5 0 0.74999994 0.75 0.75 1 0 0.49999994 0.49999994 0.5 0.750000119 0.75 0.750000119 0.75 1 1 1")
         #self.assertEqual(strategy[index-1], "0.499998242 0.49999696 0.50000006 0.499999911 0.499999881 0.49999997 0 0 0 0 0 0 0 0 0.500000536 0 0 0 0 0.5 0.49999994 0 0 0 0 0.499999672 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.50000006 0 0 0 0 0 0 0 0 0.49999997 0.5 0 0 0 0 0 0 0 0 0.499999851 0.49999994 0.49999994 0 0 0 0 0.25 0 0 0 0.249999702 0 0 0 0 0 0 0 0 0.49999994 0 0 0 0.5 0 0 0.49999997 0 0 0 0 0 0 0.49999994 0 0 0 0.49999994 0 0.5 0.5 0 0 0 0 0 0 0 0.500000536 0 0 0 0 0.50000006 0.5 0.5 0 0 0 0 0 0 0 0 0.25 0 0 0 0.249999866 0 0 0 0 0 0 0 0 0 0 0 0 0.49999997 0 0 0 0.5 0 0 0.5 0 0 0 0 0 0 0 0 0 0 0.500001788 0 0 0 0 0 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0.49999994 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0 0 0 0.24999994 0 0 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0 0 0 0.24999994 0 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0 0 0 0.25000006 0.5 0.5 0.49999994 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.49999997 0 0 0 0.49999994 0 0 0 0.49999997 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0 0 0 0.499999851 0 0 0 0.49999997 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0 0 0 0.50000006 0 0 0 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.499999881 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.249999925 0 0 0 0.249999955 0 0 0 0.5 0.5 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25000006 0 0 0 0.25 0 0 0.5 0.5 0.5 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0 0 0 0.249999925 0 0.5 0.5 0.5 0.5 0.499999911 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.499999791 0 0 0 0.499999881 0 0 0 0 0 0 0 0.5 0.5 0.50000006 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.499999255 0 0 0 0.499998719 0 0 0 0 0 0 0.499999881 0.500000119 0.5 0.5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.499998689 0 0 0 0.500000834 0 0 0 0 0 0.499999881 0.500000119 0.5 0.499999762 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.5 0.5 0.5 0 0 0 0 0.5 0.5 0.500000119 0 0 0 0 0 0 0 0 0 0 0.25 0 0 0 0.25 0 0 0 0.25 0 0 0 0.25 0 0 0 0.5 0.5 0.5 0 0 0 0 0.5 0.5 0.5 0 0.749999762 0 0 0 0 0 0 0 0 0 0 0.25000006 0 0 0 0.249999881 0 0 0 0.25 0 0 0 0.25 0 0 0.5 0.5 0.5 0 0 0 0 0.5 0.5 0.5 0 0.749999762 0.75000006 0 0 0 0 0 0 0 0 0 0 0 0.250000119 0 0 0 0.24999994 0 0 0 0.25 0 0 0 0.25 0 0.5 0.5 0.5 0 0 0 0 0.5 0.5 0.5 0 0.75 0.75000006 0.749999702 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.49999994 0 0 0 0.499999732 0 0 0 0.499999881 0 0 0 0.499999881 0 0 0 0.5 0 0 0 0.5 0 0 0 0 0 0 0.500000179 0.5 0.499999851 0.500000119 0 0 0 0 0.499999821 0.5 0.499999821 0.5 0 0 0 0.499999732 0 0 0 0.49999994 0 0 0 0.499999881 0 0 0 0.49999994 0 0 0 0.5 0 0 0 0.5 0 0 0 0 0 0.5 0.499999851 0.5 0.499999911 0 0 0 0 0.500000298 0.5 0.5 0.499999881 0 0 0 0 0 0.499999911 0 0 0 0.499999911 0 0 0 0.49999994 0 0 0 0.499999642 0 0 0 0.499999642 0 0 0 0.5 0 0 0 0 0.499999851 0.5 0.5 0.5 0 0 0 0 0.499999881 0.5 0.50000006 0.5 0 0 0 0.249999821 0 0 0 0.25000006 0 0 0 0.25 0 0 0 0.25 0 0 0 0.249999821 0 0 0 0.25 0 0 0 0 0.5 0.5 0.5 0 0.249999762 0.249999881 0.25 0.5 0.49999994 0.49999994 0 0 0.25 0.24999994 0.25 0 0.499999911 0.49999994 0.49999994 0 0.50000006 0 0 0 0.499999911 0 0 0 0.500000119 0 0 0 0.50000006 0 0 0 0.49999994 0 0 0 0.50000006 0 0 0 0.49999994 0.49999994 0.5 0.24999994 0.249999881 0.249999881 0.25 0.50000006 0.5 0.5 0 0.25000006 0.24999994 0.25 0.25 0 0.5 0.50000006 0.5 0 0 0 0.499999911 0 0 0 0.499999553 0 0 0 0.50000006 0 0 0 0.5 0 0 0 0.5 0 0 0 0.5 0 0 0.49999994 0.5 0.5 0.250000119 0.249999881 0.24999994 0.25 0.5 0.5 0.5 0 0.25000006 0.25 0.249999896 0.25000006 0 0.5 0.49999997 0.5 0 0 0 0 0 0.50000006 0 0 0 0.49999997 0 0 0 0.49999997 0 0 0 0.50000006 0 0 0 0.5 0 0 0 0.5 0 0.5 0.5 0.5 0.24999994 0.24999994 0.25 0.25 0.5 0.50000006 0.499999881 0 0.249999881 0.25 0.25 0 0 0.49999994 0.5 0.5 0 0 0 0.250000119 0 0 0 0.249999702 0 0 0 0.249999687 0.499999523 0.499999583 0.50000006 0.25 0.499999821 0.49999997 0.50000006 0.25000006 0.49999997 0.5 0.49999997 0.249999762 0.49999997 0.50000006 0.499999762 0 0.50000006 0.499999881 0.5 0 0.24999994 0.25 0.250000119 0.5 0.49999994 0.49999994 0 0 0.25 0.25 0.249999925 0 0.49999994 0.50000006 0.5 0 0.249999881 0.25 0.249999642 0 0.499999523 0 0 0 0.50000006 0 0 0.5 0.50000006 0.49999997 0.5 0 0.5 0.5 0.5 0.49999997 0.5 0.49999994 0.49999997 0.5 0.5 0.5 0.5 0 0.5 0.5 0.5 0.249999881 0.25 0.249999881 0 0.50000006 0.49999994 0.49999994 0 0.25 0.24999994 0.25000006 0.25 0 0.49999997 0.50000006 0.5 0.25 0.249999881 0.25 0.249999896 0 0 0 0.499998808 0 0 0 0.500000119 0 0 0.5 0.49999997 0.49999997 0 0.5 0.5 0.49999994 0.49999997 0.5 0.5 0.50000006 0.499999881 0.5 0.5 0.49999994 0 0.5 0.5 0.5 0.25 0.24999994 0.24999994 0.25 0.5 0.5 0.49999994 0 0.25 0.25 0.25000006 0.25 0 0.49999997 0.50000006 0.5 0.25 0.249999955 0.249999955 0.25 0 0 0 0 0 0.49999997 0 0 0 0.5 0 0.5 0.49999997 0.49999994 0 0.49999997 0.49999997 0.5 0.49999997 0.5 0.49999994 0.50000006 0.50000006 0.5 0.50000006 0.5 0 0.49999994 0.5 0 0.25 0.24999994 0.25 0.25 0.5 0.49999994 0.5 0 0.25000006 0.25 0.25 0 0 0.50000006 0.50000006 0.5 0.249999881 0.25 0.249999881 0.25 0 0 0")
         
