@@ -39,7 +39,7 @@ class Program:
         inputtedCommand = self.interface.getCommand()
         inputtedArgs = self.interface.getCommandArgs(inputtedCommand.value)
         if inputtedArgs is None:
-            return self.commandDispatcher[PluginCommands.END]([])
+            self.commandRun()
         # runs the function in the program class associated with that command
         print(inputtedArgs)
         self.commandDispatcher[inputtedCommand](inputtedArgs)
@@ -156,10 +156,14 @@ class Program:
                     thisLine.extend(evs)
                 
                 toCSV.append(thisLine)
+                savePath = folder + r"\\" + cfr
+                pio.saveTree(savePath)
+                self.interface.notify("saved to: " + savePath)
                 
             needsTitles = False
             
         addRowstoCSV(path, toCSV)
+    
         self.interface.output("Done!")
         
     #args[0] : file Name
@@ -218,23 +222,36 @@ class Tests(unittest.TestCase):
     def commandDispatcher(self):
         self.assertTrue(callable(self.p.commandDispatcher[PluginCommands.RUN]))
     
-    def testThree(self):
+    def testCaseBuggy(self):
         connection = Solver(solverPath)
         p = Program(connection, GUInterface())
         
+        folder = r"C:\Users\degeneracy station\Downloads\from_last_time"
         
-        folder = currentdir + "\sample"
-        buggyFiles = [ r"og.cfr"]
-        
-        
-        easy_weights = WeightsFile("").parseInput(folder + r"\weights\simple_weights.json")
-        buggy_weights = WeightsFile("").parseInput(folder + r"\buggy\weights_2BP_IP_PFR_B_30f_default.json")
-        
-        
-        simple_board = BoardFile("").parseInput(folder + r"\boards\board_simple.json")
+        #weights = WeightsFile("test").parseInput(folder + r"\weights\simple_weights.json")
+        weights = WeightsFile("test").parseInput(folder + r"\weights_2BP_IP_PFR_B_30f_default.json")
+        buggyFiles = [r"\og\og.cfr"]
+        simple_board = BoardFile("").parseInput(folder + r"\nodeid_x-b16.json")
         
         
-        path = p.nodelock_and_save([[folder + r"\buggy\og\\" , buggyFiles], buggy_weights, simple_board])
+        path = p.nodelock_and_save([[folder, buggyFiles], weights, simple_board])
+        
+        # p.solve_then_get_results([[path, buggyFiles], simple_board])
+        p.end([])
+    
+    def testCase1(self):
+        connection = Solver(solverPath)
+        p = Program(connection, GUInterface())
+        
+        folder = currentdir + r"\sample\tests\testCase1"
+        
+        #weights = WeightsFile("test").parseInput(folder + r"\weights\simple_weights.json")
+        weights = WeightsFile("").parseInput(folder + r"\weights.json")
+        buggyFiles = [r"original.cfr"]
+        simple_board = BoardFile("").parseInput(folder + r"\nodeBook.json")
+        
+        
+        path = p.nodelock_and_save([[folder, buggyFiles], weights, simple_board])
         
         # p.solve_then_get_results([[path, buggyFiles], simple_board])
         p.end([])

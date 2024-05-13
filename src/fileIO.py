@@ -69,7 +69,7 @@ def getExtension(file:str) -> str:
     if len(i) < 2:
         return None
     else:
-        return i[1]
+        return i[len(i) - 1]
 
 
 hand_index_map = JSONtoMap("\mappings\handIndexMap.json", [IO.LOCAL])
@@ -81,6 +81,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(getExtension("test.csv"), "csv")
         self.assertEqual(getExtension("test"), None)
         self.assertEqual(getExtension("C:\PioSOLVER\PioSOLVER3-pro.exe"), "exe")
+        self.assertEqual(getExtension("C:\PioSOLVER.2.0\PioSOLVER3-pro.exe"), "exe")
         
     def testCheckPath(self):
         self.assertEqual(checkPath("test.csv", ".csv"), "test.csv")

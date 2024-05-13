@@ -38,3 +38,5 @@ draw_category_index = {"no_draw": 0,
                        "8out_straight_draw": 4,
                        "flush_draw": 5,
                        "combo_draw": 6}
+
+

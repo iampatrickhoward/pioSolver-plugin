@@ -172,7 +172,6 @@ class TreeOperator():
             # if it is a hand category
             addInsteadOfReplace = category_name in exception_categories
             
-            print(category_name)
             if category_name in hand_category_index:
                 # inputs: the current strategy, the index of the target node, the category index corresponding to the category name, the weight of that category)
                 strategy = self.update_weight(strategy, targetIndex, target_hand_cats, hand_category_index.get(category_name), weightMap.get(category_name), addInsteadOfReplace)
@@ -182,30 +181,72 @@ class TreeOperator():
     
     # alters the combos that belong to the given category to the given weight
     # updates the corresponding combos in the other child nodes to a weight that keeps the proportions of the other strategies the same as before
-    def update_weight(self, strategy : list[list[float]], targetIndex : int, categoriesOfCombos : list[int], category : int, newWeight : float, addWeight : bool) -> list[float]:
+    def update_weight(self, strategy : list[list[float]], targetIndex : int, categoriesOfCombos : list[int], category : int, category_weight : float, addWeight : bool) -> list[float]:
+        '''
         newWeight = Decimal(normalizeWeight(newWeight))
-        wrongTotal = {}
+        
         for comboIndex in range(0,totalCombos):
             # if the category of the combo in the target node is equal to the category whose weight we are trying to change
             if categoriesOfCombos[comboIndex] == category:
                 
-                # check if outside range
-                totalWeight = Decimal(0)
-                originalWeightString = "old: "
-                for childIndex in range(0,len(strategy)) :
-                    totalWeight = totalWeight + Decimal(strategy[targetIndex][comboIndex])
-                    originalWeightString = originalWeightString + " " + str(strategy[childIndex][comboIndex])
+                oldWeight = Decimal(strategy[targetIndex][comboIndex])
                 
+                finalWeight = newWeight
+                if addWeight:
+                    finalWeight = oldWeight + newWeight
+                    
+                if finalWeight < 0:
+                    raise Exception("Weight adjustment entered is invalid; cannot have negative percentage")
+                
+                if (printConsole):
+                    print("oldWeight : " + str(oldWeight))
+                    print("newWeight : " + str(finalWeight))
+                    
+                
+                
+                # iterate through all child nodes
+                for childIndex in range(0,len(strategy)) :
+                    if childIndex == targetIndex:
+                        strategy[childIndex][comboIndex] = finalWeight
+                    else :
+                        # if the other decisions were 0, make them equally likely
+                        if oldWeight == 1:
+                            strategy[childIndex][comboIndex] = (Decimal(1) - finalWeight)/(Decimal(len(strategy) - 1))
+                        #  if not, multiply a constant that will maintain their relative proportions
+                        else:
+                            k = (Decimal(1) - finalWeight)/(Decimal(1) - oldWeight)
+                            strategy[childIndex][comboIndex] = Decimal(strategy[childIndex][comboIndex])* Decimal(k)
+        return strategy
+        
+        '''
+        category_weight = Decimal(normalizeWeight(category_weight))
+        wrongTotal = {}
+        
+        #per combo
+        for comboIndex in range(0,totalCombos):
+            
+            # if the category of the combo is equal to the category whose weight we are trying to change
+            if categoriesOfCombos[comboIndex] == category:
+                
+
+                # add up weights of all child nodes
+                totalWeight = Decimal(0)
+                # originalWeightString = "old: "
+                
+                
+                for childIndex in range(0,len(strategy)) :
+                    totalWeight = totalWeight + Decimal(strategy[childIndex][comboIndex])
+                    #originalWeightString = originalWeightString + " " + str(strategy[childIndex][comboIndex])
+                
+                # if total weight is more than 0, hand is in range
                 if totalWeight > Decimal(0):
                     
-                    wrongTotal = {}
-                
-                    oldWeight = Decimal(strategy[targetIndex][comboIndex])
-                    finalWeight = newWeight
-                
+                    #wrongTotal = {}
+                    original_target_node_weight = Decimal(strategy[targetIndex][comboIndex])
                     if addWeight:
-                        finalWeight = oldWeight + newWeight
-                    if finalWeight < 0:
+                        category_weight = original_target_node_weight + category_weight
+                        
+                    if category_weight < 0:
                         raise Exception("Weight adjustment entered is invalid; cannot have negative percentage")
                     
 
@@ -218,41 +259,45 @@ class TreeOperator():
                     for childIndex in range(0,len(strategy)) :
                         weight = 0
                         if childIndex == targetIndex:
-                            weight = finalWeight
+                            weight = category_weight
                         else:
-                            # if the other decisions were 0, make them equally likely
-                            if round(oldWeight,6) == 1:
-                                weight = (Decimal(1) - finalWeight)/(Decimal(len(strategy) - 1))
+                            # if the other decisions were all 0, make them equally likely
+                            if (totalWeight - original_target_node_weight) == Decimal(0):
+                                weight = (Decimal(1) - category_weight)/(Decimal(len(strategy) - 1))
+                                #print("oldWeight : " + str(original_target_weight))
+                                #print("newWeight : " + str(weight))
                             #  if not, multiply a constant that will maintain their relative proportions
                             else:
-                                k = (Decimal(1) - finalWeight)/(Decimal(1) - oldWeight)
+                                k = (Decimal(1) - category_weight)/(Decimal(1) - original_target_node_weight)
                                 weight = Decimal(strategy[childIndex][comboIndex])* Decimal(k)
                             
-                        
-                        
                         strategy[childIndex][comboIndex] = weight
                         
                         
                         newWeightsTotal = newWeightsTotal + weight
                         newWeightStr = newWeightStr + " " + str(weight)
                         
-                    if round(newWeightsTotal, 4) != 1:
-                        wrongTotal[category + str(comboIndex)] = [originalWeightString, newWeightStr, str(newWeightsTotal)]
-                        
-        for w in wrongTotal:
-            print("(" + str(w) + ")" + ": " + str(wrongTotal[w]))   
+                    #if round(newWeightsTotal, 8) != 1:
+                        #wrongTotal[str(category) + str(comboIndex)] = [originalWeightString, newWeightStr, str(newWeightsTotal)]
+        
+        if len(wrongTotal) > 1:         
+            msg = ""     
+            for w in wrongTotal:
+                msg += ("(" + str(w) + ")" + ": " + str(wrongTotal[w])) + "\n"
+            
+            raise Exception("Weight for one or more combos do not add up to 1: \n" + msg)
+        
         return strategy
-
 
 class Tests(unittest.TestCase):
     
     def testQc8cTsResults(self):
-        folder = currentdir + "\sample"
-        cfr = folder + r"\buggy\og\og.cfr"
+        folder = r"C:\Users\degeneracy station\Downloads\from_last_time"
+        cfr = folder + r"\og\og.cfr"
         node = "r:0:c:b16"
         
         #weights = WeightsFile("test").parseInput(folder + r"\weights\simple_weights.json")
-        weights = WeightsFile("test").parseInput(folder + r"\buggy\weights_2BP_IP_PFR_B_30f_default.json")
+        weights = WeightsFile("test").parseInput(folder + r"\weights_2BP_IP_PFR_B_30f_default.json")
         
         connection = Solver(solverPath)
         connection.write_line("load_tree \"" + cfr)

@@ -4,6 +4,7 @@ GenericRangeExplorer*
 sample/cfr
 sample_patrick
 test.py
+sample/tests
 *.cfr
 *.csv
 *.zip

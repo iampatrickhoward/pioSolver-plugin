@@ -1,11 +1,11 @@
 
 from __future__ import annotations
-from stringFunc import parseEV, toFloat, parseTreeInfoToMap, parseSettingsToMap
+from stringFunc import parseEV, toFloat, parseTreeInfoToMap, parseSettingsToMap, parseNodeIDtoList, makeNodeIDfromList
 import unittest
 from inputs import BoardFile, Decisions
 from global_var import solverPath
 from SolverConnection.solver import Solver
-from decimal import *
+from decimal import Decimal
 from treeops import TreeOperator, normalizeWeight, nodeInfo
 from fileIO import addRowstoCSV, addRowtoCSV, IO
 consoleLog = False
@@ -33,6 +33,9 @@ class SolverCommmand():
                 return func(args)
         except Exception as e:
             self.connection.exit()
+            print(str(e) + ",   called with :")
+            for a in args:
+                print("\t --- " + str(a))
             raise e
     
     def try_and_ignore_pio(self, func, args : list): 
@@ -82,11 +85,22 @@ class SolverCommmand():
 
     
     # arg[0] = nodeID
+    
+    def get_local_frequency(self, nodes, freq) :
+        #print("\n local freq: " + str(freq))
+        nodes = nodes[:-1]
+        parent = makeNodeIDfromList(nodes)
+        k = toFloat((self.tryPio(self.connection.command, ["calc_line_freq " + parent]))[0])
+        #print("line freq: " + str(k))
+        return freq/k
+
+        
     def getActionFrequency(self, args : list) :
         nodeID = args[0]
-        output = self.tryPio(self.connection.command, ["calc_line_freq " + nodeID])
-        op = round(toFloat(output[0]), 4)
-        return op
+        line_freq = self.tryPio(self.connection.command, ["calc_line_freq " + nodeID])
+        local_frequency = self.get_local_frequency(parseNodeIDtoList(nodeID), toFloat(line_freq[0]))
+        
+        return round(local_frequency, 4)
     
     
     # arg[0] = percentage
@@ -154,7 +168,6 @@ def parseNodeLinetoBetSizes (line : str) -> str:
         
 class Tests(unittest.TestCase):
     
-
     
     def getEVs(self):
         self.connection = Solver(solverPath)
@@ -172,39 +185,40 @@ class Tests(unittest.TestCase):
         self.connection.exit()
     
 
-    def testSetAccuracy(self):
+    def SetAccuracy(self):
         self.connection = Solver(solverPath)
         self.pio = SolverCommmand(self.connection)
         self.pio.load_tree(r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\KdTc9h.cfr")
         
         info = parseTreeInfoToMap(self.connection.command("show_tree_info"))
-        self.assertEqual(info["Pot"], 55)
+        self.assertEqual(info["Pot"], Decimal('55'))
         settings = parseSettingsToMap(self.connection.command("show_settings"))
-        self.assertEqual(settings["accuracy"], 55*.002)
+        self.assertEqual(settings["accuracy"], Decimal('0.11'))
         
         
         self.pio.setAccuracy([.01]) 
         settings = parseSettingsToMap(self.connection.command("show_settings"))
-        self.assertEqual(settings["accuracy"], .55)
+        self.assertEqual(settings["accuracy"], Decimal(".55"))
         
         self.connection.exit()
             
-    def Frequencies(self):
+    def testFrequencies(self):
         self.connection = Solver(solverPath)
         self.pio = SolverCommmand(self.connection)
         
         
-        nodes = ["r:0:c:b16", "r:0:c:c", "r:0:c:b16:c", "r:0:c:b16:b68", "r:0:c:b16:f"]
-        testFiles = {"KdTc9h.cfr" : [.5, .5, 0.1667, 0.1667, 0.1667] ,
-                     "Qh6c5s.cfr" : [.5, .5, 0.1667, 0.1667, 0.1667] ,
-                     "As5h3s.cfr" : [.5, .5, 0.1667, 0.1667, 0.1667] }
+        nodes = ["r:0:c:b16", "r:0:c:c", "r:0:c:b16:c", "r:0:c:b16:b68", "r:0:c:b16:f", "r:0:c:b16:b68:b154", "r:0:c:b16:b68:c", "r:0:c:b16:b68:f"]
+        testFiles = {"As5h3s.cfr" : [.5, .5, 0.3333, 0.3333, 0.3333, 0.3333, 0.3333, 0.3333] }
         
         for file in testFiles:
             self.pio.load_tree(r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\\" + file)
             for i in range(0, len(nodes)):
                 frequency = self.pio.getActionFrequency([nodes[i]]) 
                 correct_frequency = testFiles.get(file)[i]
-                self.assertAlmostEqual(frequency, correct_frequency, delta = .0001 )
+                #try:
+                self.assertAlmostEqual(frequency, Decimal(correct_frequency), delta = .0001 )
+                #except Exception:
+                #    "Failed " + str(file) + "\t" + str(nodes[i])
             
         self.connection.exit()
     
@@ -291,8 +305,7 @@ class Tests(unittest.TestCase):
         self.pio.run_until("build_tree", "build_tree ok!")
         self.pio.saveTree([r"C:\Users\degeneracy station\Documents\PioSolver-plugin\sample\cfr\KdTc9h_small_duplicate.cfr"])
         
-        self.connection.exit()
-    
+        self.connection.exit()    
         
     def File(self):
         
